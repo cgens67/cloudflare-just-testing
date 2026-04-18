@@ -5,28 +5,19 @@ import './globals.css'
 
 const roboto = Roboto({ 
   subsets: ["latin"],
-  weight: ["300", "400", "500", "700", "900"],
+  weight:["300", "400", "500", "700", "900"],
   variable: "--font-roboto"
 });
 
 export const metadata: Metadata = {
-  title: 'Google Music',
+  title: 'Ganvo Music',
   description: 'Search and play music with synced lyrics',
   generator: 'v0.app',
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
+    icon:[
+      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
+      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
+      { url: '/icon.svg', type: 'image/svg+xml' }
     ],
     apple: '/apple-icon.png',
   },
@@ -38,8 +29,8 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className="bg-background">
-      <body className={`${roboto.variable} font-sans antialiased`}>
+    <html lang="en">
+      <body className={`${roboto.variable} font-sans antialiased overflow-hidden`}>
         {children}
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
