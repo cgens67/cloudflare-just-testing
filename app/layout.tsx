@@ -10,8 +10,8 @@ const roboto = Roboto({
 });
 
 export const metadata: Metadata = {
-  title: 'Audio Player',
-  description: 'A modern audio player with playlist support',
+  title: 'Google Music',
+  description: 'Search and play music with synced lyrics',
   generator: 'v0.app',
   icons: {
     icon: [

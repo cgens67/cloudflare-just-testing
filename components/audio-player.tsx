@@ -1,608 +1,720 @@
 "use client"
 
-import * as React from "react"
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Volume2, 
-  VolumeX, 
-  Volume1,
-  Shuffle, 
-  Repeat, 
-  Repeat1,
-  Heart,
-  MoreHorizontal,
-  Music2
-} from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { Input } from "@/components/ui/input"
+import {
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Volume2,
+  VolumeX,
+  Volume1,
+  Search,
+  Shuffle,
+  Repeat,
+  Repeat1,
+  Sun,
+  Moon,
+  Loader2,
+  Music2,
+  X,
+  ListMusic,
+  Mic2,
+} from "lucide-react"
+import { cn } from "@/lib/utils"
 
-interface Track {
-  id: number
+interface Song {
+  videoId: string
   title: string
   artist: string
   album: string
   duration: number
-  cover: string
-  audioUrl: string
-  liked?: boolean
+  thumbnail: string
 }
 
-// Free royalty-free music samples from Pixabay
-const sampleTracks: Track[] = [
-  { 
-    id: 1, 
-    title: "Chill Abstract", 
-    artist: "Coma-Media", 
-    album: "Ambient Dreams", 
-    duration: 118, 
-    cover: "https://images.unsplash.com/photo-1614149162883-504ce4d13909?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3",
-    liked: true
-  },
-  { 
-    id: 2, 
-    title: "Lofi Study", 
-    artist: "FASSounds", 
-    album: "Focus Flow", 
-    duration: 147, 
-    cover: "https://images.unsplash.com/photo-1557672172-298e090bd0f1?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/10/25/audio_946db8a98e.mp3"
-  },
-  { 
-    id: 3, 
-    title: "Good Night", 
-    artist: "FASSounds", 
-    album: "Evening Calm", 
-    duration: 146, 
-    cover: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/01/18/audio_d0c6ff1bab.mp3"
-  },
-  { 
-    id: 4, 
-    title: "Cinematic Ambient", 
-    artist: "Lexin Music", 
-    album: "Film Scores", 
-    duration: 180, 
-    cover: "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/08/02/audio_884fe92c21.mp3",
-    liked: true
-  },
-  { 
-    id: 5, 
-    title: "Ambient Piano", 
-    artist: "Daddy_s_Music", 
-    album: "Piano Dreams", 
-    duration: 192, 
-    cover: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/03/15/audio_8cb749d484.mp3"
-  },
-  { 
-    id: 6, 
-    title: "Electronic Future", 
-    artist: "QubeSounds", 
-    album: "Digital Age", 
-    duration: 148, 
-    cover: "https://images.unsplash.com/photo-1635322966219-b75ed372eb01?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2023/09/04/audio_0468996946.mp3"
-  },
-  { 
-    id: 7, 
-    title: "Peaceful Garden", 
-    artist: "Lesfm", 
-    album: "Nature Sounds", 
-    duration: 171, 
-    cover: "https://images.unsplash.com/photo-1604871000636-074fa5117945?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/08/25/audio_4f3b0a816e.mp3"
-  },
-  { 
-    id: 8, 
-    title: "Deep Space", 
-    artist: "SergePavkinMusic", 
-    album: "Cosmic Journey", 
-    duration: 184, 
-    cover: "https://images.unsplash.com/photo-1534796636912-3b95b3ab5986?w=300&h=300&fit=crop",
-    audioUrl: "https://cdn.pixabay.com/download/audio/2022/11/22/audio_febc508520.mp3",
-    liked: true
-  },
-]
-
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60)
-  const secs = Math.floor(seconds % 60)
-  return `${mins}:${secs.toString().padStart(2, "0")}`
+interface LyricLine {
+  time: number
+  text: string
 }
 
-function VolumeIcon({ volume, muted }: { volume: number; muted: boolean }) {
-  if (muted || volume === 0) return <VolumeX className="size-5" />
-  if (volume < 50) return <Volume1 className="size-5" />
-  return <Volume2 className="size-5" />
-}
-
-function EqualizerBars() {
-  return (
-    <div className="flex items-end justify-center gap-0.5 h-4">
-      <span className="w-1 bg-primary rounded-full animate-equalizer-1" />
-      <span className="w-1 bg-primary rounded-full animate-equalizer-2" />
-      <span className="w-1 bg-primary rounded-full animate-equalizer-3" />
-      <span className="w-1 bg-primary rounded-full animate-equalizer-4" />
-    </div>
-  )
+interface LyricsData {
+  syncedLyrics: LyricLine[] | null
+  plainLyrics: string | null
 }
 
 export function AudioPlayer() {
-  const audioRef = React.useRef<HTMLAudioElement>(null)
-  const [currentTrackIndex, setCurrentTrackIndex] = React.useState(0)
-  const [isPlaying, setIsPlaying] = React.useState(false)
-  const [currentTime, setCurrentTime] = React.useState(0)
-  const [duration, setDuration] = React.useState(0)
-  const [volume, setVolume] = React.useState([75])
-  const [isMuted, setIsMuted] = React.useState(false)
-  const [isShuffled, setIsShuffled] = React.useState(false)
-  const [repeatMode, setRepeatMode] = React.useState<"off" | "all" | "one">("off")
-  const [tracks, setTracks] = React.useState(sampleTracks)
-  const [isLoading, setIsLoading] = React.useState(false)
-  
-  const currentTrack = tracks[currentTrackIndex]
+  const [isDark, setIsDark] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [searchResults, setSearchResults] = useState<Song[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [queue, setQueue] = useState<Song[]>([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [volume, setVolume] = useState(80)
+  const [isMuted, setIsMuted] = useState(false)
+  const [shuffle, setShuffle] = useState(false)
+  const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
+  const [isLoading, setIsLoading] = useState(false)
+  const [lyrics, setLyrics] = useState<LyricsData | null>(null)
+  const [currentLyricIndex, setCurrentLyricIndex] = useState(-1)
+  const [showLyrics, setShowLyrics] = useState(false)
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
 
-  // Handle audio events
-  React.useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const lyricsContainerRef = useRef<HTMLDivElement>(null)
 
-    const handleTimeUpdate = () => setCurrentTime(audio.currentTime)
-    const handleDurationChange = () => setDuration(audio.duration || currentTrack.duration)
-    const handleEnded = () => handleNext()
-    const handleCanPlay = () => setIsLoading(false)
-    const handleWaiting = () => setIsLoading(true)
-    const handlePlaying = () => setIsLoading(false)
+  const currentSong = queue[currentIndex]
 
-    audio.addEventListener("timeupdate", handleTimeUpdate)
-    audio.addEventListener("durationchange", handleDurationChange)
-    audio.addEventListener("ended", handleEnded)
-    audio.addEventListener("canplay", handleCanPlay)
-    audio.addEventListener("waiting", handleWaiting)
-    audio.addEventListener("playing", handlePlaying)
+  // Toggle dark mode
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", isDark)
+  }, [isDark])
 
-    return () => {
-      audio.removeEventListener("timeupdate", handleTimeUpdate)
-      audio.removeEventListener("durationchange", handleDurationChange)
-      audio.removeEventListener("ended", handleEnded)
-      audio.removeEventListener("canplay", handleCanPlay)
-      audio.removeEventListener("waiting", handleWaiting)
-      audio.removeEventListener("playing", handlePlaying)
-    }
-  }, [currentTrackIndex])
+  // Search songs
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return
 
-  // Handle play/pause
-  React.useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-
-    if (isPlaying) {
-      audio.play().catch(() => setIsPlaying(false))
-    } else {
-      audio.pause()
-    }
-  }, [isPlaying])
-
-  // Handle volume changes
-  React.useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    audio.volume = isMuted ? 0 : volume[0] / 100
-  }, [volume, isMuted])
-
-  // Handle track changes
-  React.useEffect(() => {
-    const audio = audioRef.current
-    if (!audio) return
-    
-    setCurrentTime(0)
-    audio.load()
-    if (isPlaying) {
-      audio.play().catch(() => setIsPlaying(false))
-    }
-  }, [currentTrackIndex])
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying)
-  }
-
-  const handlePrevious = () => {
-    if (currentTime > 3) {
-      const audio = audioRef.current
-      if (audio) audio.currentTime = 0
-      setCurrentTime(0)
-    } else {
-      setCurrentTrackIndex((prev) => (prev === 0 ? tracks.length - 1 : prev - 1))
+    setIsSearching(true)
+    try {
+      const response = await fetch(`/api/music/search?q=${encodeURIComponent(searchQuery)}`)
+      const data = await response.json()
+      setSearchResults(data.results || [])
+    } catch (error) {
+      console.error("Search failed:", error)
+    } finally {
+      setIsSearching(false)
     }
   }
 
-  const handleNext = () => {
+  // Add song to queue and play
+  const addToQueueAndPlay = async (song: Song) => {
+    const existingIndex = queue.findIndex((s) => s.videoId === song.videoId)
+    if (existingIndex >= 0) {
+      setCurrentIndex(existingIndex)
+    } else {
+      setQueue((prev) => [...prev, song])
+      setCurrentIndex(queue.length)
+    }
+    setSearchResults([])
+    setSearchQuery("")
+  }
+
+  // Load audio stream when song changes
+  useEffect(() => {
+    if (!currentSong) return
+
+    const loadStream = async () => {
+      setIsLoading(true)
+      setAudioUrl(null)
+
+      try {
+        const response = await fetch(`/api/music/stream/${currentSong.videoId}`)
+        const data = await response.json()
+
+        if (data.audioUrl) {
+          setAudioUrl(data.audioUrl)
+        }
+      } catch (error) {
+        console.error("Failed to load stream:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadStream()
+  }, [currentSong?.videoId])
+
+  // Load lyrics when song changes
+  useEffect(() => {
+    if (!currentSong) return
+
+    const loadLyrics = async () => {
+      setLyrics(null)
+      setCurrentLyricIndex(-1)
+
+      try {
+        const params = new URLSearchParams({
+          track: currentSong.title,
+          artist: currentSong.artist,
+          ...(currentSong.album && { album: currentSong.album }),
+          ...(currentSong.duration && { duration: String(currentSong.duration) }),
+        })
+
+        const response = await fetch(`/api/lyrics?${params}`)
+        const data = await response.json()
+
+        if (data.syncedLyrics || data.plainLyrics) {
+          setLyrics({
+            syncedLyrics: data.syncedLyrics,
+            plainLyrics: data.plainLyrics,
+          })
+        }
+      } catch (error) {
+        console.error("Failed to load lyrics:", error)
+      }
+    }
+
+    loadLyrics()
+  }, [currentSong?.videoId])
+
+  // Auto-play when audio URL is ready
+  useEffect(() => {
+    if (audioUrl && audioRef.current) {
+      audioRef.current.src = audioUrl
+      audioRef.current.load()
+      audioRef.current
+        .play()
+        .then(() => {
+          setIsPlaying(true)
+        })
+        .catch(console.error)
+    }
+  }, [audioUrl])
+
+  // Update current lyric based on time
+  useEffect(() => {
+    if (!lyrics?.syncedLyrics) return
+
+    const lyric = lyrics.syncedLyrics.findLast((l) => l.time <= currentTime)
+    const index = lyric ? lyrics.syncedLyrics.indexOf(lyric) : -1
+
+    if (index !== currentLyricIndex) {
+      setCurrentLyricIndex(index)
+
+      // Auto-scroll to current lyric
+      if (lyricsContainerRef.current && index >= 0) {
+        const lyricElements = lyricsContainerRef.current.querySelectorAll(".lyric-line")
+        lyricElements[index]?.scrollIntoView({ behavior: "smooth", block: "center" })
+      }
+    }
+  }, [currentTime, lyrics, currentLyricIndex])
+
+  // Audio event handlers
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime)
+    }
+  }
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration)
+    }
+  }
+
+  const handleEnded = () => {
     if (repeatMode === "one") {
-      const audio = audioRef.current
-      if (audio) {
-        audio.currentTime = 0
-        audio.play()
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0
+        audioRef.current.play()
+      }
+    } else {
+      playNext()
+    }
+  }
+
+  // Playback controls
+  const togglePlay = useCallback(() => {
+    if (!audioRef.current || !audioUrl) return
+
+    if (isPlaying) {
+      audioRef.current.pause()
+    } else {
+      audioRef.current.play()
+    }
+    setIsPlaying(!isPlaying)
+  }, [isPlaying, audioUrl])
+
+  const playNext = useCallback(() => {
+    if (queue.length === 0) return
+
+    let nextIndex: number
+    if (shuffle) {
+      nextIndex = Math.floor(Math.random() * queue.length)
+    } else {
+      nextIndex = (currentIndex + 1) % queue.length
+    }
+
+    if (nextIndex === 0 && repeatMode === "off" && !shuffle) {
+      setIsPlaying(false)
+      return
+    }
+
+    setCurrentIndex(nextIndex)
+  }, [queue.length, currentIndex, shuffle, repeatMode])
+
+  const playPrevious = useCallback(() => {
+    if (queue.length === 0) return
+
+    if (currentTime > 3) {
+      if (audioRef.current) {
+        audioRef.current.currentTime = 0
       }
       return
     }
 
-    if (isShuffled) {
-      const randomIndex = Math.floor(Math.random() * tracks.length)
-      setCurrentTrackIndex(randomIndex)
-    } else if (currentTrackIndex === tracks.length - 1) {
-      if (repeatMode === "all") {
-        setCurrentTrackIndex(0)
-      } else {
-        setIsPlaying(false)
-      }
-    } else {
-      setCurrentTrackIndex((prev) => prev + 1)
+    const prevIndex = (currentIndex - 1 + queue.length) % queue.length
+    setCurrentIndex(prevIndex)
+  }, [queue.length, currentIndex, currentTime])
+
+  const handleSeek = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0]
+      setCurrentTime(value[0])
     }
   }
 
-  const handleProgressChange = (value: number[]) => {
-    const audio = audioRef.current
-    if (!audio) return
-    const newTime = (value[0] / 100) * (duration || currentTrack.duration)
-    audio.currentTime = newTime
-    setCurrentTime(newTime)
-  }
-
   const handleVolumeChange = (value: number[]) => {
-    setVolume(value)
-    setIsMuted(value[0] === 0)
+    const newVolume = value[0]
+    setVolume(newVolume)
+    setIsMuted(newVolume === 0)
+    if (audioRef.current) {
+      audioRef.current.volume = newVolume / 100
+    }
   }
 
   const toggleMute = () => {
     setIsMuted(!isMuted)
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? volume / 100 : 0
+    }
   }
 
-  const cycleRepeatMode = () => {
-    setRepeatMode((prev) => {
-      if (prev === "off") return "all"
-      if (prev === "all") return "one"
-      return "off"
-    })
+  const removeFromQueue = (index: number) => {
+    setQueue((prev) => prev.filter((_, i) => i !== index))
+    if (index < currentIndex) {
+      setCurrentIndex((prev) => prev - 1)
+    } else if (index === currentIndex && queue.length > 1) {
+      if (index === queue.length - 1) {
+        setCurrentIndex((prev) => prev - 1)
+      }
+    }
   }
 
-  const handleTrackSelect = (index: number) => {
-    setCurrentTrackIndex(index)
-    setIsPlaying(true)
+  const formatTime = (seconds: number) => {
+    if (!isFinite(seconds)) return "0:00"
+    const mins = Math.floor(seconds / 60)
+    const secs = Math.floor(seconds % 60)
+    return `${mins}:${secs.toString().padStart(2, "0")}`
   }
 
-  const toggleLike = (trackId: number) => {
-    setTracks(prev => 
-      prev.map(track => 
-        track.id === trackId ? { ...track, liked: !track.liked } : track
-      )
-    )
-  }
-
-  const progressPercent = (currentTime / (duration || currentTrack.duration)) * 100
+  const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 50 ? Volume1 : Volume2
 
   return (
-    <div className="flex h-screen w-full flex-col bg-background lg:flex-row overflow-hidden">
-      {/* Hidden Audio Element */}
-      <audio ref={audioRef} src={currentTrack.audioUrl} preload="metadata" />
+    <div className="flex h-screen flex-col bg-background transition-colors duration-300">
+      {/* Hidden audio element */}
+      <audio
+        ref={audioRef}
+        onTimeUpdate={handleTimeUpdate}
+        onLoadedMetadata={handleLoadedMetadata}
+        onEnded={handleEnded}
+        onPlay={() => setIsPlaying(true)}
+        onPause={() => setIsPlaying(false)}
+      />
 
-      {/* Main Player Area */}
-      <div className="flex flex-1 flex-col items-center justify-center p-6 lg:p-12 relative overflow-hidden">
-        {/* Background Gradient Effect */}
-        <div 
-          className="absolute inset-0 opacity-30 blur-3xl transition-all duration-1000"
-          style={{
-            background: `radial-gradient(circle at 50% 30%, var(--primary) 0%, transparent 50%)`
-          }}
-        />
-
-        {/* Content */}
-        <div className="relative z-10 flex flex-col items-center w-full max-w-lg">
-          {/* Album Art Container with M3 Expressive styling */}
-          <div className="relative mb-8 w-full max-w-sm">
-            {/* Vinyl Record Effect */}
-            <div className={cn(
-              "absolute inset-4 rounded-full bg-surface-container-highest transition-all duration-700",
-              isPlaying ? "animate-vinyl-spin" : "animate-vinyl-spin paused"
-            )}>
-              <div className="absolute inset-0 rounded-full bg-[conic-gradient(from_0deg,rgba(255,255,255,0.03)_0deg,transparent_60deg,rgba(255,255,255,0.03)_120deg,transparent_180deg,rgba(255,255,255,0.03)_240deg,transparent_300deg)]" />
-              <div className="absolute inset-[35%] rounded-full bg-background" />
-              <div className="absolute inset-[42%] rounded-full bg-surface-container" />
-            </div>
-
-            {/* Album Cover */}
-            <div className={cn(
-              "relative aspect-square overflow-hidden rounded-3xl shadow-2xl transition-all duration-500",
-              isPlaying && "shadow-primary/20 shadow-[0_8px_60px_-15px]"
-            )}>
-              <img
-                src={currentTrack.cover}
-                alt={`${currentTrack.album} cover`}
-                className={cn(
-                  "h-full w-full object-cover transition-transform duration-700",
-                  isPlaying && "scale-105"
-                )}
-                crossOrigin="anonymous"
-              />
-              {/* Loading Overlay */}
-              {isLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-background/60 backdrop-blur-sm">
-                  <div className="size-12 rounded-full border-4 border-primary/30 border-t-primary animate-spin" />
-                </div>
-              )}
-              {/* Playing Indicator Overlay */}
-              {isPlaying && !isLoading && (
-                <div className="absolute bottom-4 left-4 flex items-center gap-2 rounded-full bg-background/80 backdrop-blur-sm px-3 py-1.5">
-                  <EqualizerBars />
-                  <span className="text-xs font-medium text-foreground">Playing</span>
-                </div>
-              )}
-            </div>
+      {/* Header - Google style */}
+      <header className="flex items-center justify-between border-b px-4 py-3 md:px-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--google-red)] dark:bg-[var(--google-red)]">
+            <Music2 className="h-5 w-5 text-white" />
           </div>
+          <div className="flex items-baseline gap-1">
+            <span className="text-xl font-normal text-[#5f6368] dark:text-[#9aa0a6]">Google</span>
+            <span className="text-xl font-medium">Music</span>
+          </div>
+        </div>
 
-          {/* Track Info with M3 Typography */}
-          <div className="mb-6 text-center w-full">
-            <div className="flex items-center justify-center gap-3 mb-2">
-              <h2 className="text-balance text-2xl font-bold tracking-tight text-foreground lg:text-3xl">
-                {currentTrack.title}
-              </h2>
+        {/* Search bar - Google style */}
+        <div className="relative mx-4 max-w-2xl flex-1">
+          <div className="relative flex items-center">
+            <Search className="absolute left-4 h-5 w-5 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search for songs, artists, or albums"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+              className="h-12 w-full rounded-full border-0 bg-muted pl-12 pr-24 text-base shadow-none transition-shadow focus-visible:ring-0 focus-visible:shadow-md"
+            />
+            {searchQuery && (
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => toggleLike(currentTrack.id)}
-                className={cn(
-                  "size-8 rounded-full transition-all",
-                  currentTrack.liked 
-                    ? "text-primary hover:text-primary/80" 
-                    : "text-muted-foreground hover:text-foreground"
-                )}
+                onClick={() => {
+                  setSearchQuery("")
+                  setSearchResults([])
+                }}
+                className="absolute right-14 h-8 w-8 rounded-full"
               >
-                <Heart className={cn("size-5", currentTrack.liked && "fill-current")} />
-                <span className="sr-only">{currentTrack.liked ? "Unlike" : "Like"}</span>
+                <X className="h-4 w-4" />
               </Button>
+            )}
+            <Button
+              onClick={handleSearch}
+              disabled={!searchQuery.trim() || isSearching}
+              className="absolute right-2 h-8 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
+            </Button>
+          </div>
+
+          {/* Search Results Dropdown */}
+          {searchResults.length > 0 && (
+            <div className="elevation-3 absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border bg-card">
+              <ScrollArea className="max-h-[400px]">
+                <div className="p-2">
+                  {searchResults.map((song) => (
+                    <button
+                      key={song.videoId}
+                      onClick={() => addToQueueAndPlay(song)}
+                      className="flex w-full items-center gap-4 rounded-xl p-3 text-left transition-colors hover:bg-muted"
+                    >
+                      <img
+                        src={song.thumbnail || "/placeholder.svg"}
+                        alt={song.title}
+                        className="h-12 w-12 rounded-lg object-cover"
+                      />
+                      <div className="flex-1 overflow-hidden">
+                        <p className="truncate font-medium">{song.title}</p>
+                        <p className="truncate text-sm text-muted-foreground">
+                          {song.artist} {song.album && `• ${song.album}`}
+                        </p>
+                      </div>
+                      <span className="text-sm text-muted-foreground">{formatTime(song.duration)}</span>
+                    </button>
+                  ))}
+                </div>
+              </ScrollArea>
             </div>
-            <p className="text-base text-muted-foreground font-medium">{currentTrack.artist}</p>
-            <p className="text-sm text-on-surface-variant mt-0.5">{currentTrack.album}</p>
-          </div>
+          )}
 
-          {/* Progress Bar - M3 Style */}
-          <div className="mb-8 w-full">
-            <div className="group relative">
-              <Slider
-                value={[progressPercent]}
-                onValueChange={handleProgressChange}
-                max={100}
-                step={0.1}
-                className="cursor-pointer [&_[data-slot=thumb]]:size-0 [&_[data-slot=thumb]]:opacity-0 group-hover:[&_[data-slot=thumb]]:size-4 group-hover:[&_[data-slot=thumb]]:opacity-100 [&_[data-slot=thumb]]:transition-all [&_[data-slot=thumb]]:shadow-lg [&_[data-slot=range]]:bg-primary [&_[data-slot=track]]:bg-surface-container-highest [&_[data-slot=track]]:h-2 group-hover:[&_[data-slot=track]]:h-3 [&_[data-slot=track]]:transition-all"
-              />
+          {isSearching && (
+            <div className="elevation-3 absolute top-full z-50 mt-2 flex w-full items-center justify-center rounded-2xl border bg-card py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+              <span className="ml-3 text-muted-foreground">Searching...</span>
             </div>
-            <div className="mt-3 flex justify-between text-xs font-medium text-muted-foreground">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration || currentTrack.duration)}</span>
+          )}
+        </div>
+
+        {/* Theme toggle */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsDark(!isDark)}
+          className="h-10 w-10 rounded-full"
+        >
+          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </Button>
+      </header>
+
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Player Area */}
+        <div className="flex flex-1 flex-col items-center justify-center p-6 md:p-8">
+          {currentSong ? (
+            <div className="flex w-full max-w-md flex-col items-center">
+              {/* Album Art */}
+              <div className="relative mb-8">
+                <div
+                  className={cn(
+                    "elevation-2 h-56 w-56 overflow-hidden rounded-2xl transition-all duration-500 sm:h-72 sm:w-72 md:h-80 md:w-80",
+                    isPlaying && "scale-[1.02]"
+                  )}
+                >
+                  <img
+                    src={currentSong.thumbnail || "/placeholder.svg"}
+                    alt={currentSong.title}
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                {isLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60">
+                    <Loader2 className="h-12 w-12 animate-spin text-white" />
+                  </div>
+                )}
+                {isPlaying && !isLoading && (
+                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-sm">
+                    <span className="eq-bar-1 h-3 w-0.5 rounded-full bg-white" />
+                    <span className="eq-bar-2 h-3 w-0.5 rounded-full bg-white" />
+                    <span className="eq-bar-3 h-3 w-0.5 rounded-full bg-white" />
+                    <span className="eq-bar-4 h-3 w-0.5 rounded-full bg-white" />
+                  </div>
+                )}
+              </div>
+
+              {/* Song Info */}
+              <div className="mb-6 w-full text-center">
+                <h2 className="mb-1 truncate text-xl font-medium sm:text-2xl">{currentSong.title}</h2>
+                <p className="truncate text-base text-muted-foreground">{currentSong.artist}</p>
+              </div>
+
+              {/* Progress Bar */}
+              <div className="mb-6 w-full">
+                <Slider
+                  value={[currentTime]}
+                  max={duration || 100}
+                  step={0.1}
+                  onValueChange={handleSeek}
+                  className="mb-2 [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3 [&_[data-slot=thumb]]:border-2 [&_[data-slot=track]]:h-1"
+                />
+                <div className="flex justify-between text-xs text-muted-foreground">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+
+              {/* Playback Controls */}
+              <div className="mb-6 flex items-center gap-3">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShuffle(!shuffle)}
+                  className={cn("h-10 w-10 rounded-full", shuffle && "bg-primary/10 text-primary")}
+                >
+                  <Shuffle className="h-5 w-5" />
+                </Button>
+
+                <Button variant="ghost" size="icon" onClick={playPrevious} className="h-12 w-12 rounded-full">
+                  <SkipBack className="h-6 w-6 fill-current" />
+                </Button>
+
+                <Button
+                  onClick={togglePlay}
+                  disabled={isLoading || !audioUrl}
+                  className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 hover:bg-primary/90 sm:h-16 sm:w-16"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-6 w-6 animate-spin sm:h-7 sm:w-7" />
+                  ) : isPlaying ? (
+                    <Pause className="h-6 w-6 fill-current sm:h-7 sm:w-7" />
+                  ) : (
+                    <Play className="h-6 w-6 fill-current pl-0.5 sm:h-7 sm:w-7" />
+                  )}
+                </Button>
+
+                <Button variant="ghost" size="icon" onClick={playNext} className="h-12 w-12 rounded-full">
+                  <SkipForward className="h-6 w-6 fill-current" />
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setRepeatMode(repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off")}
+                  className={cn("h-10 w-10 rounded-full", repeatMode !== "off" && "bg-primary/10 text-primary")}
+                >
+                  {repeatMode === "one" ? <Repeat1 className="h-5 w-5" /> : <Repeat className="h-5 w-5" />}
+                </Button>
+              </div>
+
+              {/* Volume & Lyrics Toggle */}
+              <div className="flex w-full items-center justify-between gap-4">
+                <div className="flex flex-1 items-center gap-3 rounded-full bg-muted px-4 py-2">
+                  <Button variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 rounded-full p-0">
+                    <VolumeIcon className="h-4 w-4" />
+                  </Button>
+                  <Slider
+                    value={[isMuted ? 0 : volume]}
+                    max={100}
+                    step={1}
+                    onValueChange={handleVolumeChange}
+                    className="flex-1 [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3 [&_[data-slot=track]]:h-1"
+                  />
+                  <span className="w-8 text-right text-xs text-muted-foreground">{isMuted ? 0 : volume}%</span>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className={cn("h-10 w-10 rounded-full lg:hidden", showLyrics && "bg-primary/10 text-primary")}
+                >
+                  <Mic2 className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
+          ) : (
+            <div className="flex flex-col items-center px-4 text-center">
+              <div className="mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-muted">
+                <Music2 className="h-16 w-16 text-muted-foreground" />
+              </div>
+              <h2 className="mb-2 text-2xl font-medium">Start listening</h2>
+              <p className="max-w-sm text-muted-foreground">
+                Search for your favorite songs, artists, or albums to begin
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Sidebar - Queue & Lyrics */}
+        <div className="hidden w-80 flex-col border-l bg-card lg:flex xl:w-96">
+          {/* Tabs */}
+          <div className="flex border-b">
+            <button
+              onClick={() => setShowLyrics(false)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 border-b-2 py-3.5 text-sm font-medium transition-colors",
+                !showLyrics
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <ListMusic className="h-4 w-4" />
+              Up next ({queue.length})
+            </button>
+            <button
+              onClick={() => setShowLyrics(true)}
+              className={cn(
+                "flex flex-1 items-center justify-center gap-2 border-b-2 py-3.5 text-sm font-medium transition-colors",
+                showLyrics
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <Mic2 className="h-4 w-4" />
+              Lyrics
+            </button>
           </div>
 
-          {/* Main Controls - M3 Expressive FAB Style */}
-          <div className="mb-8 flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsShuffled(!isShuffled)}
-              className={cn(
-                "size-12 rounded-full transition-all",
-                isShuffled 
-                  ? "bg-primary/15 text-primary hover:bg-primary/25" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-surface-container-high"
-              )}
-            >
-              <Shuffle className="size-5" />
-              <span className="sr-only">Shuffle</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handlePrevious}
-              className="size-14 rounded-full text-foreground hover:bg-surface-container-high transition-all active:scale-95"
-            >
-              <SkipBack className="size-7 fill-current" />
-              <span className="sr-only">Previous track</span>
-            </Button>
-
-            <Button
-              size="icon"
-              onClick={handlePlayPause}
-              disabled={isLoading}
-              className={cn(
-                "size-20 rounded-full shadow-lg transition-all active:scale-95",
-                "bg-primary text-primary-foreground hover:bg-primary/90",
-                "shadow-primary/30 hover:shadow-primary/40 hover:shadow-xl",
-                isPlaying && "shadow-primary/50"
-              )}
-            >
-              {isLoading ? (
-                <div className="size-8 rounded-full border-3 border-primary-foreground/30 border-t-primary-foreground animate-spin" />
-              ) : isPlaying ? (
-                <Pause className="size-9 fill-current" />
-              ) : (
-                <Play className="size-9 fill-current ml-1" />
-              )}
-              <span className="sr-only">{isPlaying ? "Pause" : "Play"}</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={handleNext}
-              className="size-14 rounded-full text-foreground hover:bg-surface-container-high transition-all active:scale-95"
-            >
-              <SkipForward className="size-7 fill-current" />
-              <span className="sr-only">Next track</span>
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={cycleRepeatMode}
-              className={cn(
-                "size-12 rounded-full transition-all",
-                repeatMode !== "off" 
-                  ? "bg-primary/15 text-primary hover:bg-primary/25" 
-                  : "text-muted-foreground hover:text-foreground hover:bg-surface-container-high"
-              )}
-            >
-              {repeatMode === "one" ? (
-                <Repeat1 className="size-5" />
-              ) : (
-                <Repeat className="size-5" />
-              )}
-              <span className="sr-only">Repeat mode: {repeatMode}</span>
-            </Button>
-          </div>
-
-          {/* Volume Control - M3 Style */}
-          <div className="flex w-full max-w-xs items-center gap-3 px-4 py-3 rounded-full bg-surface-container">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleMute}
-              className="size-10 shrink-0 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high"
-            >
-              <VolumeIcon volume={volume[0]} muted={isMuted} />
-              <span className="sr-only">{isMuted ? "Unmute" : "Mute"}</span>
-            </Button>
-            <Slider
-              value={isMuted ? [0] : volume}
-              onValueChange={handleVolumeChange}
-              max={100}
-              step={1}
-              className="flex-1 cursor-pointer [&_[data-slot=thumb]]:size-4 [&_[data-slot=thumb]]:border-2 [&_[data-slot=thumb]]:border-primary [&_[data-slot=thumb]]:bg-foreground [&_[data-slot=range]]:bg-primary [&_[data-slot=track]]:bg-outline-variant"
-            />
-            <span className="text-xs font-medium text-muted-foreground w-8 text-right">
-              {isMuted ? 0 : volume[0]}%
-            </span>
-          </div>
+          {/* Content */}
+          <ScrollArea className="flex-1">
+            {showLyrics ? (
+              <div ref={lyricsContainerRef} className="p-6">
+                {lyrics?.syncedLyrics ? (
+                  <div className="space-y-4">
+                    {lyrics.syncedLyrics.map((line, index) => (
+                      <p
+                        key={index}
+                        className={cn(
+                          "lyric-line cursor-pointer rounded-lg px-2 py-1 text-lg leading-relaxed transition-all duration-300",
+                          index === currentLyricIndex
+                            ? "scale-[1.02] bg-primary/10 font-medium text-primary"
+                            : index < currentLyricIndex
+                              ? "text-muted-foreground/60"
+                              : "text-muted-foreground hover:text-foreground"
+                        )}
+                        onClick={() => {
+                          if (audioRef.current) {
+                            audioRef.current.currentTime = line.time
+                          }
+                        }}
+                      >
+                        {line.text}
+                      </p>
+                    ))}
+                  </div>
+                ) : lyrics?.plainLyrics ? (
+                  <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{lyrics.plainLyrics}</p>
+                ) : currentSong ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Mic2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
+                    <p className="font-medium">No lyrics available</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Lyrics not found for this song</p>
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <Mic2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
+                    <p className="text-muted-foreground">Play a song to see lyrics</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="p-2">
+                {queue.length > 0 ? (
+                  queue.map((song, index) => (
+                    <div
+                      key={`${song.videoId}-${index}`}
+                      className={cn(
+                        "group flex items-center gap-3 rounded-xl p-2.5 transition-colors",
+                        index === currentIndex ? "bg-primary/10" : "hover:bg-muted"
+                      )}
+                    >
+                      <button onClick={() => setCurrentIndex(index)} className="flex flex-1 items-center gap-3 text-left">
+                        <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg">
+                          <img
+                            src={song.thumbnail || "/placeholder.svg"}
+                            alt={song.title}
+                            className="h-full w-full object-cover"
+                          />
+                          {index === currentIndex && isPlaying && (
+                            <div className="absolute inset-0 flex items-center justify-center gap-0.5 bg-black/60">
+                              <span className="eq-bar-1 h-3 w-0.5 rounded-full bg-white" />
+                              <span className="eq-bar-2 h-3 w-0.5 rounded-full bg-white" />
+                              <span className="eq-bar-3 h-3 w-0.5 rounded-full bg-white" />
+                              <span className="eq-bar-4 h-3 w-0.5 rounded-full bg-white" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p
+                            className={cn(
+                              "truncate text-sm font-medium",
+                              index === currentIndex && "text-primary"
+                            )}
+                          >
+                            {song.title}
+                          </p>
+                          <p className="truncate text-xs text-muted-foreground">{song.artist}</p>
+                        </div>
+                      </button>
+                      <span className="text-xs text-muted-foreground">{formatTime(song.duration)}</span>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => removeFromQueue(index)}
+                        className="h-8 w-8 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                    <ListMusic className="mb-4 h-12 w-12 text-muted-foreground/40" />
+                    <p className="font-medium">Your queue is empty</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Search and add songs to play</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </ScrollArea>
         </div>
       </div>
 
-      {/* Playlist Panel - M3 Surface Container */}
-      <div className="border-t border-border bg-surface-container lg:w-[400px] lg:border-l lg:border-t-0 flex flex-col h-80 lg:h-auto">
-        {/* Playlist Header */}
-        <div className="flex items-center justify-between p-5 border-b border-outline-variant">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-full bg-primary/15 flex items-center justify-center">
-              <Music2 className="size-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-bold text-foreground">Queue</h3>
-              <span className="text-xs text-muted-foreground">
-                {tracks.length} tracks
-              </span>
-            </div>
+      {/* Mobile Bottom Player */}
+      {currentSong && (
+        <div className="elevation-2 flex items-center gap-3 border-t bg-card p-3 lg:hidden">
+          <img
+            src={currentSong.thumbnail || "/placeholder.svg"}
+            alt={currentSong.title}
+            className="h-12 w-12 rounded-lg object-cover"
+          />
+          <div className="flex-1 overflow-hidden">
+            <p className="truncate text-sm font-medium">{currentSong.title}</p>
+            <p className="truncate text-xs text-muted-foreground">{currentSong.artist}</p>
           </div>
           <Button
             variant="ghost"
             size="icon"
-            className="size-10 rounded-full text-muted-foreground hover:text-foreground hover:bg-surface-container-high"
+            onClick={togglePlay}
+            disabled={isLoading || !audioUrl}
+            className="h-10 w-10 rounded-full"
           >
-            <MoreHorizontal className="size-5" />
-            <span className="sr-only">More options</span>
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : isPlaying ? (
+              <Pause className="h-5 w-5 fill-current" />
+            ) : (
+              <Play className="h-5 w-5 fill-current pl-0.5" />
+            )}
           </Button>
         </div>
-
-        {/* Playlist Items */}
-        <ScrollArea className="flex-1">
-          <div className="p-2">
-            {tracks.map((track, index) => (
-              <button
-                key={track.id}
-                onClick={() => handleTrackSelect(index)}
-                className={cn(
-                  "group flex w-full items-center gap-4 rounded-2xl p-3 text-left transition-all",
-                  "hover:bg-surface-container-high active:scale-[0.98]",
-                  currentTrackIndex === index && "bg-primary/10"
-                )}
-              >
-                {/* Track Thumbnail */}
-                <div className="relative size-14 shrink-0 overflow-hidden rounded-xl">
-                  <img
-                    src={track.cover}
-                    alt={track.album}
-                    className="size-full object-cover"
-                    crossOrigin="anonymous"
-                  />
-                  {currentTrackIndex === index && isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-                      <EqualizerBars />
-                    </div>
-                  )}
-                </div>
-
-                {/* Track Info */}
-                <div className="min-w-0 flex-1">
-                  <p
-                    className={cn(
-                      "truncate text-sm font-semibold transition-colors",
-                      currentTrackIndex === index
-                        ? "text-primary"
-                        : "text-foreground"
-                    )}
-                  >
-                    {track.title}
-                  </p>
-                  <p className="truncate text-xs text-muted-foreground mt-0.5">
-                    {track.artist}
-                  </p>
-                </div>
-
-                {/* Like & Duration */}
-                <div className="flex items-center gap-2 shrink-0">
-                  {track.liked && (
-                    <Heart className="size-4 text-primary fill-primary" />
-                  )}
-                  <span className="text-xs font-medium text-on-surface-variant tabular-nums">
-                    {formatTime(track.duration)}
-                  </span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </ScrollArea>
-
-        {/* Now Playing Mini Bar (Mobile) */}
-        <div className="lg:hidden border-t border-outline-variant p-3 bg-surface-container-high">
-          <div className="flex items-center gap-3">
-            <div className="size-10 rounded-lg overflow-hidden">
-              <img 
-                src={currentTrack.cover} 
-                alt={currentTrack.album}
-                className="size-full object-cover"
-                crossOrigin="anonymous"
-              />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-foreground truncate">{currentTrack.title}</p>
-              <p className="text-xs text-muted-foreground truncate">{currentTrack.artist}</p>
-            </div>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handlePlayPause}
-                className="size-10 rounded-full"
-              >
-                {isPlaying ? <Pause className="size-5" /> : <Play className="size-5 ml-0.5" />}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   )
 }
