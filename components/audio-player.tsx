@@ -6,6 +6,20 @@ import { Slider } from "@/components/ui/slider"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog"
+import {
   Play,
   Pause,
   SkipBack,
@@ -24,6 +38,12 @@ import {
   X,
   ListMusic,
   Mic2,
+  MoreVertical,
+  Info,
+  Heart,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -51,6 +71,7 @@ export function AudioPlayer() {
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
   const [isSearching, setIsSearching] = useState(false)
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [queue, setQueue] = useState<Song[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
@@ -61,13 +82,18 @@ export function AudioPlayer() {
   const [shuffle, setShuffle] = useState(false)
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const [isLoading, setIsLoading] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [lyrics, setLyrics] = useState<LyricsData | null>(null)
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1)
   const [showLyrics, setShowLyrics] = useState(false)
   const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [showAboutDialog, setShowAboutDialog] = useState(false)
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false)
+  const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
 
   const audioRef = useRef<HTMLAudioElement>(null)
   const lyricsContainerRef = useRef<HTMLDivElement>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const currentSong = queue[currentIndex]
 
@@ -76,21 +102,38 @@ export function AudioPlayer() {
     document.documentElement.classList.toggle("dark", isDark)
   }, [isDark])
 
-  // Search songs
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return
+  // Debounced auto-search while typing
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
+    if (!searchQuery.trim()) {
+      setSearchResults([])
+      setIsSearching(false)
+      return
+    }
 
     setIsSearching(true)
-    try {
-      const response = await fetch(`/api/music/search?q=${encodeURIComponent(searchQuery)}`)
-      const data = await response.json()
-      setSearchResults(data.results || [])
-    } catch (error) {
-      console.error("Search failed:", error)
-    } finally {
-      setIsSearching(false)
+    
+    searchTimeoutRef.current = setTimeout(async () => {
+      try {
+        const response = await fetch(`/api/music/search?q=${encodeURIComponent(searchQuery)}`)
+        const data = await response.json()
+        setSearchResults(data.results || [])
+      } catch (error) {
+        console.error("Search failed:", error)
+      } finally {
+        setIsSearching(false)
+      }
+    }, 400) // 400ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
     }
-  }
+  }, [searchQuery])
 
   // Add song to queue and play
   const addToQueueAndPlay = async (song: Song) => {
@@ -103,6 +146,7 @@ export function AudioPlayer() {
     }
     setSearchResults([])
     setSearchQuery("")
+    setIsSearchExpanded(false)
   }
 
   // Load audio stream when song changes
@@ -112,16 +156,25 @@ export function AudioPlayer() {
     const loadStream = async () => {
       setIsLoading(true)
       setAudioUrl(null)
+      setLoadError(null)
 
       try {
         const response = await fetch(`/api/music/stream/${currentSong.videoId}`)
         const data = await response.json()
 
+        if (data.error) {
+          setLoadError(data.error)
+          return
+        }
+
         if (data.audioUrl) {
           setAudioUrl(data.audioUrl)
+        } else {
+          setLoadError("No audio stream available")
         }
       } catch (error) {
         console.error("Failed to load stream:", error)
+        setLoadError("Network error. Please try again.")
       } finally {
         setIsLoading(false)
       }
@@ -173,7 +226,10 @@ export function AudioPlayer() {
         .then(() => {
           setIsPlaying(true)
         })
-        .catch(console.error)
+        .catch((err) => {
+          console.error("Playback error:", err)
+          setLoadError("Playback failed. Try another song.")
+        })
     }
   }, [audioUrl])
 
@@ -297,6 +353,18 @@ export function AudioPlayer() {
     }
   }
 
+  const toggleLike = (videoId: string) => {
+    setLikedSongs((prev) => {
+      const next = new Set(prev)
+      if (next.has(videoId)) {
+        next.delete(videoId)
+      } else {
+        next.add(videoId)
+      }
+      return next
+    })
+  }
+
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds)) return "0:00"
     const mins = Math.floor(seconds / 60)
@@ -307,7 +375,7 @@ export function AudioPlayer() {
   const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 50 ? Volume1 : Volume2
 
   return (
-    <div className="flex h-screen flex-col bg-background transition-colors duration-300">
+    <div className="flex h-screen flex-col overflow-hidden bg-background transition-colors duration-500">
       {/* Hidden audio element */}
       <audio
         ref={audioRef}
@@ -316,16 +384,17 @@ export function AudioPlayer() {
         onEnded={handleEnded}
         onPlay={() => setIsPlaying(true)}
         onPause={() => setIsPlaying(false)}
+        onError={() => setLoadError("Audio playback error. Try another song.")}
       />
 
       {/* Header - Google style */}
-      <header className="flex items-center justify-between border-b px-4 py-3 md:px-6">
+      <header className="elevation-1 m3-transition relative z-20 flex items-center justify-between px-4 py-3 md:px-6">
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--google-red)] dark:bg-[var(--google-red)]">
+          <div className="m3-transition flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--google-red)] transition-transform hover:scale-105">
             <Music2 className="h-5 w-5 text-white" />
           </div>
           <div className="flex items-baseline gap-1">
-            <span className="text-xl font-normal text-[#5f6368] dark:text-[#9aa0a6]">Google</span>
+            <span className="text-xl font-normal text-muted-foreground">Google</span>
             <span className="text-xl font-medium">Music</span>
           </div>
         </div>
@@ -339,8 +408,7 @@ export function AudioPlayer() {
               placeholder="Search for songs, artists, or albums"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-              className="h-12 w-full rounded-full border-0 bg-muted pl-12 pr-24 text-base shadow-none transition-shadow focus-visible:ring-0 focus-visible:shadow-md"
+              className="m3-transition h-12 w-full rounded-full border-0 bg-muted pl-12 pr-12 text-base shadow-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:shadow-lg"
             />
             {searchQuery && (
               <Button
@@ -350,81 +418,126 @@ export function AudioPlayer() {
                   setSearchQuery("")
                   setSearchResults([])
                 }}
-                className="absolute right-14 h-8 w-8 rounded-full"
+                className="absolute right-3 h-8 w-8 rounded-full transition-transform hover:scale-110"
               >
                 <X className="h-4 w-4" />
               </Button>
             )}
-            <Button
-              onClick={handleSearch}
-              disabled={!searchQuery.trim() || isSearching}
-              className="absolute right-2 h-8 rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              {isSearching ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
-            </Button>
           </div>
 
           {/* Search Results Dropdown */}
-          {searchResults.length > 0 && (
-            <div className="elevation-3 absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border bg-card">
-              <ScrollArea className="max-h-[400px]">
+          {(searchResults.length > 0 || isSearching) && (
+            <div 
+              className={cn(
+                "elevation-3 dropdown-in absolute top-full z-50 mt-2 w-full overflow-hidden rounded-2xl border bg-card",
+                isSearchExpanded ? "search-results-expanded" : "max-h-[400px]"
+              )}
+            >
+              <ScrollArea className={isSearchExpanded ? "h-[70vh]" : "max-h-[350px]"}>
                 <div className="p-2">
-                  {searchResults.map((song) => (
-                    <button
-                      key={song.videoId}
-                      onClick={() => addToQueueAndPlay(song)}
-                      className="flex w-full items-center gap-4 rounded-xl p-3 text-left transition-colors hover:bg-muted"
-                    >
-                      <img
-                        src={song.thumbnail || "/placeholder.svg"}
-                        alt={song.title}
-                        className="h-12 w-12 rounded-lg object-cover"
-                      />
-                      <div className="flex-1 overflow-hidden">
-                        <p className="truncate font-medium">{song.title}</p>
-                        <p className="truncate text-sm text-muted-foreground">
-                          {song.artist} {song.album && `• ${song.album}`}
-                        </p>
-                      </div>
-                      <span className="text-sm text-muted-foreground">{formatTime(song.duration)}</span>
-                    </button>
-                  ))}
+                  {isSearching && searchResults.length === 0 ? (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                      <span className="ml-3 text-muted-foreground">Searching...</span>
+                    </div>
+                  ) : (
+                    searchResults.map((song, index) => (
+                      <button
+                        key={song.videoId}
+                        onClick={() => addToQueueAndPlay(song)}
+                        className="song-card flex w-full items-center gap-4 rounded-xl p-3 text-left"
+                        style={{ animationDelay: `${index * 50}ms` }}
+                      >
+                        <div className="relative h-12 w-12 overflow-hidden rounded-lg">
+                          <img
+                            src={song.thumbnail || "/placeholder.svg"}
+                            alt={song.title}
+                            className="h-full w-full object-cover transition-transform duration-300 hover:scale-110"
+                          />
+                        </div>
+                        <div className="flex-1 overflow-hidden">
+                          <p className="truncate font-medium">{song.title}</p>
+                          <p className="truncate text-sm text-muted-foreground">
+                            {song.artist} {song.album && `\u2022 ${song.album}`}
+                          </p>
+                        </div>
+                        <span className="text-sm text-muted-foreground">{formatTime(song.duration)}</span>
+                      </button>
+                    ))
+                  )}
                 </div>
               </ScrollArea>
-            </div>
-          )}
-
-          {isSearching && (
-            <div className="elevation-3 absolute top-full z-50 mt-2 flex w-full items-center justify-center rounded-2xl border bg-card py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-              <span className="ml-3 text-muted-foreground">Searching...</span>
+              
+              {searchResults.length > 5 && (
+                <div className="border-t p-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsSearchExpanded(!isSearchExpanded)}
+                    className="m3-transition w-full justify-center gap-2 rounded-lg"
+                  >
+                    {isSearchExpanded ? (
+                      <>
+                        <ChevronUp className="h-4 w-4" />
+                        Show less
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-4 w-4" />
+                        Show all {searchResults.length} results
+                      </>
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Theme toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsDark(!isDark)}
-          className="h-10 w-10 rounded-full"
-        >
-          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-        </Button>
+        {/* Right side buttons */}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsDark(!isDark)}
+            className="m3-transition h-10 w-10 rounded-full hover:scale-105"
+          >
+            {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="m3-transition h-10 w-10 rounded-full hover:scale-105">
+                <MoreVertical className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="dropdown-in w-48 rounded-xl">
+              <DropdownMenuItem onClick={() => setShowAboutDialog(true)} className="m3-transition cursor-pointer gap-3 rounded-lg">
+                <Info className="h-4 w-4" />
+                About
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setShowCreditsDialog(true)} className="m3-transition cursor-pointer gap-3 rounded-lg">
+                <Heart className="h-4 w-4" />
+                Credits
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </header>
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Player Area */}
-        <div className="flex flex-1 flex-col items-center justify-center p-6 md:p-8">
+        <div className="flex flex-1 flex-col items-center justify-center p-6 pb-24 md:p-8 md:pb-8">
           {currentSong ? (
-            <div className="flex w-full max-w-md flex-col items-center">
+            <div className="m3-fade-in flex w-full max-w-md flex-col items-center">
               {/* Album Art */}
               <div className="relative mb-8">
                 <div
                   className={cn(
-                    "elevation-2 h-56 w-56 overflow-hidden rounded-2xl transition-all duration-500 sm:h-72 sm:w-72 md:h-80 md:w-80",
-                    isPlaying && "scale-[1.02]"
+                    "elevation-3 m3-transition h-56 w-56 overflow-hidden rounded-3xl sm:h-72 sm:w-72 md:h-80 md:w-80",
+                    isPlaying && "album-float"
                   )}
                 >
                   <img
@@ -434,12 +547,38 @@ export function AudioPlayer() {
                   />
                 </div>
                 {isLoading && (
-                  <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/60">
+                  <div className="m3-fade-in absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-black/70 backdrop-blur-sm">
                     <Loader2 className="h-12 w-12 animate-spin text-white" />
+                    <span className="text-sm text-white/80">Loading stream...</span>
                   </div>
                 )}
-                {isPlaying && !isLoading && (
-                  <div className="absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-sm">
+                {loadError && !isLoading && (
+                  <div className="m3-fade-in absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-3xl bg-black/70 p-4 text-center backdrop-blur-sm">
+                    <span className="text-sm text-white/90">{loadError}</span>
+                    <Button 
+                      size="sm" 
+                      variant="secondary"
+                      onClick={() => {
+                        setLoadError(null)
+                        setIsLoading(true)
+                        // Retry loading
+                        fetch(`/api/music/stream/${currentSong.videoId}`)
+                          .then(r => r.json())
+                          .then(data => {
+                            if (data.audioUrl) setAudioUrl(data.audioUrl)
+                            else setLoadError(data.error || "Failed to load")
+                          })
+                          .catch(() => setLoadError("Network error"))
+                          .finally(() => setIsLoading(false))
+                      }}
+                      className="m3-transition"
+                    >
+                      Retry
+                    </Button>
+                  </div>
+                )}
+                {isPlaying && !isLoading && !loadError && (
+                  <div className="playing-glow absolute bottom-3 left-3 flex items-center gap-1.5 rounded-full bg-black/70 px-3 py-1.5 backdrop-blur-sm">
                     <span className="eq-bar-1 h-3 w-0.5 rounded-full bg-white" />
                     <span className="eq-bar-2 h-3 w-0.5 rounded-full bg-white" />
                     <span className="eq-bar-3 h-3 w-0.5 rounded-full bg-white" />
@@ -449,9 +588,22 @@ export function AudioPlayer() {
               </div>
 
               {/* Song Info */}
-              <div className="mb-6 w-full text-center">
-                <h2 className="mb-1 truncate text-xl font-medium sm:text-2xl">{currentSong.title}</h2>
-                <p className="truncate text-base text-muted-foreground">{currentSong.artist}</p>
+              <div className="mb-6 flex w-full items-center gap-3">
+                <div className="flex-1 overflow-hidden text-center">
+                  <h2 className="mb-1 truncate text-xl font-medium sm:text-2xl">{currentSong.title}</h2>
+                  <p className="truncate text-base text-muted-foreground">{currentSong.artist}</p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => toggleLike(currentSong.videoId)}
+                  className={cn(
+                    "m3-transition h-10 w-10 rounded-full",
+                    likedSongs.has(currentSong.videoId) && "text-[var(--google-red)]"
+                  )}
+                >
+                  <Heart className={cn("h-5 w-5", likedSongs.has(currentSong.videoId) && "fill-current")} />
+                </Button>
               </div>
 
               {/* Progress Bar */}
@@ -461,7 +613,7 @@ export function AudioPlayer() {
                   max={duration || 100}
                   step={0.1}
                   onValueChange={handleSeek}
-                  className="mb-2 [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-3 [&_[data-slot=thumb]]:w-3 [&_[data-slot=thumb]]:border-2 [&_[data-slot=track]]:h-1"
+                  className="mb-2 [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:m3-transition [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=thumb]]:border-2 [&_[data-slot=thumb]]:hover:scale-125 [&_[data-slot=track]]:h-1.5"
                 />
                 <div className="flex justify-between text-xs text-muted-foreground">
                   <span>{formatTime(currentTime)}</span>
@@ -475,30 +627,50 @@ export function AudioPlayer() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setShuffle(!shuffle)}
-                  className={cn("h-10 w-10 rounded-full", shuffle && "bg-primary/10 text-primary")}
+                  className={cn(
+                    "m3-transition h-10 w-10 rounded-full hover:scale-110",
+                    shuffle && "bg-primary/10 text-primary"
+                  )}
                 >
                   <Shuffle className="h-5 w-5" />
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={playPrevious} className="h-12 w-12 rounded-full">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={playPrevious} 
+                  className="m3-transition h-12 w-12 rounded-full hover:scale-110"
+                >
                   <SkipBack className="h-6 w-6 fill-current" />
                 </Button>
 
                 <Button
                   onClick={togglePlay}
                   disabled={isLoading || !audioUrl}
-                  className="h-14 w-14 rounded-full bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105 hover:bg-primary/90 sm:h-16 sm:w-16"
+                  className={cn(
+                    "m3-transition h-16 w-16 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 sm:h-18 sm:w-18",
+                    isPlaying && "fab-pulse"
+                  )}
+                  style={{ transform: "scale(1)", transition: "transform 0.2s" }}
+                  onMouseDown={(e) => (e.currentTarget.style.transform = "scale(0.95)")}
+                  onMouseUp={(e) => (e.currentTarget.style.transform = "scale(1)")}
+                  onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
                 >
                   {isLoading ? (
-                    <Loader2 className="h-6 w-6 animate-spin sm:h-7 sm:w-7" />
+                    <Loader2 className="h-7 w-7 animate-spin sm:h-8 sm:w-8" />
                   ) : isPlaying ? (
-                    <Pause className="h-6 w-6 fill-current sm:h-7 sm:w-7" />
+                    <Pause className="h-7 w-7 fill-current sm:h-8 sm:w-8" />
                   ) : (
-                    <Play className="h-6 w-6 fill-current pl-0.5 sm:h-7 sm:w-7" />
+                    <Play className="h-7 w-7 fill-current pl-1 sm:h-8 sm:w-8" />
                   )}
                 </Button>
 
-                <Button variant="ghost" size="icon" onClick={playNext} className="h-12 w-12 rounded-full">
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={playNext} 
+                  className="m3-transition h-12 w-12 rounded-full hover:scale-110"
+                >
                   <SkipForward className="h-6 w-6 fill-current" />
                 </Button>
 
@@ -506,7 +678,10 @@ export function AudioPlayer() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setRepeatMode(repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off")}
-                  className={cn("h-10 w-10 rounded-full", repeatMode !== "off" && "bg-primary/10 text-primary")}
+                  className={cn(
+                    "m3-transition h-10 w-10 rounded-full hover:scale-110",
+                    repeatMode !== "off" && "bg-primary/10 text-primary"
+                  )}
                 >
                   {repeatMode === "one" ? <Repeat1 className="h-5 w-5" /> : <Repeat className="h-5 w-5" />}
                 </Button>
@@ -514,8 +689,13 @@ export function AudioPlayer() {
 
               {/* Volume & Lyrics Toggle */}
               <div className="flex w-full items-center justify-between gap-4">
-                <div className="flex flex-1 items-center gap-3 rounded-full bg-muted px-4 py-2">
-                  <Button variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 rounded-full p-0">
+                <div className="m3-transition flex flex-1 items-center gap-3 rounded-full bg-muted px-4 py-2.5">
+                  <Button 
+                    variant="ghost" 
+                    size="icon" 
+                    onClick={toggleMute} 
+                    className="m3-transition h-8 w-8 rounded-full p-0 hover:scale-110"
+                  >
                     <VolumeIcon className="h-4 w-4" />
                   </Button>
                   <Slider
@@ -532,15 +712,18 @@ export function AudioPlayer() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowLyrics(!showLyrics)}
-                  className={cn("h-10 w-10 rounded-full lg:hidden", showLyrics && "bg-primary/10 text-primary")}
+                  className={cn(
+                    "m3-transition h-10 w-10 rounded-full hover:scale-110 lg:hidden",
+                    showLyrics && "bg-primary/10 text-primary"
+                  )}
                 >
                   <Mic2 className="h-5 w-5" />
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="flex flex-col items-center px-4 text-center">
-              <div className="mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-muted">
+            <div className="m3-bounce-in flex flex-col items-center px-4 text-center">
+              <div className="m3-pulse mb-6 flex h-32 w-32 items-center justify-center rounded-full bg-muted">
                 <Music2 className="h-16 w-16 text-muted-foreground" />
               </div>
               <h2 className="mb-2 text-2xl font-medium">Start listening</h2>
@@ -558,7 +741,7 @@ export function AudioPlayer() {
             <button
               onClick={() => setShowLyrics(false)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 border-b-2 py-3.5 text-sm font-medium transition-colors",
+                "m3-transition flex flex-1 items-center justify-center gap-2 border-b-2 py-3.5 text-sm font-medium",
                 !showLyrics
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -570,7 +753,7 @@ export function AudioPlayer() {
             <button
               onClick={() => setShowLyrics(true)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-2 border-b-2 py-3.5 text-sm font-medium transition-colors",
+                "m3-transition flex flex-1 items-center justify-center gap-2 border-b-2 py-3.5 text-sm font-medium",
                 showLyrics
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -591,12 +774,12 @@ export function AudioPlayer() {
                       <p
                         key={index}
                         className={cn(
-                          "lyric-line cursor-pointer rounded-lg px-2 py-1 text-lg leading-relaxed transition-all duration-300",
+                          "lyric-line m3-transition cursor-pointer rounded-lg px-3 py-2 text-lg leading-relaxed",
                           index === currentLyricIndex
-                            ? "scale-[1.02] bg-primary/10 font-medium text-primary"
+                            ? "scale-[1.02] bg-primary/15 font-medium text-primary"
                             : index < currentLyricIndex
-                              ? "text-muted-foreground/60"
-                              : "text-muted-foreground hover:text-foreground"
+                              ? "text-muted-foreground/50"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
                         )}
                         onClick={() => {
                           if (audioRef.current) {
@@ -609,15 +792,17 @@ export function AudioPlayer() {
                     ))}
                   </div>
                 ) : lyrics?.plainLyrics ? (
-                  <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground">{lyrics.plainLyrics}</p>
+                  <p className="m3-fade-in whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                    {lyrics.plainLyrics}
+                  </p>
                 ) : currentSong ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="m3-fade-in flex flex-col items-center justify-center py-16 text-center">
                     <Mic2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
                     <p className="font-medium">No lyrics available</p>
                     <p className="mt-1 text-sm text-muted-foreground">Lyrics not found for this song</p>
                   </div>
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="m3-fade-in flex flex-col items-center justify-center py-16 text-center">
                     <Mic2 className="mb-4 h-12 w-12 text-muted-foreground/40" />
                     <p className="text-muted-foreground">Play a song to see lyrics</p>
                   </div>
@@ -630,19 +815,23 @@ export function AudioPlayer() {
                     <div
                       key={`${song.videoId}-${index}`}
                       className={cn(
-                        "group flex items-center gap-3 rounded-xl p-2.5 transition-colors",
-                        index === currentIndex ? "bg-primary/10" : "hover:bg-muted"
+                        "song-card group flex items-center gap-3 rounded-xl p-2.5",
+                        index === currentIndex ? "bg-primary/10" : ""
                       )}
+                      style={{ animationDelay: `${index * 30}ms` }}
                     >
-                      <button onClick={() => setCurrentIndex(index)} className="flex flex-1 items-center gap-3 text-left">
+                      <button 
+                        onClick={() => setCurrentIndex(index)} 
+                        className="flex flex-1 items-center gap-3 text-left"
+                      >
                         <div className="relative h-12 w-12 flex-shrink-0 overflow-hidden rounded-lg">
                           <img
                             src={song.thumbnail || "/placeholder.svg"}
                             alt={song.title}
-                            className="h-full w-full object-cover"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-110"
                           />
                           {index === currentIndex && isPlaying && (
-                            <div className="absolute inset-0 flex items-center justify-center gap-0.5 bg-black/60">
+                            <div className="playing-glow absolute inset-0 flex items-center justify-center gap-0.5 bg-black/60">
                               <span className="eq-bar-1 h-3 w-0.5 rounded-full bg-white" />
                               <span className="eq-bar-2 h-3 w-0.5 rounded-full bg-white" />
                               <span className="eq-bar-3 h-3 w-0.5 rounded-full bg-white" />
@@ -667,14 +856,14 @@ export function AudioPlayer() {
                         variant="ghost"
                         size="icon"
                         onClick={() => removeFromQueue(index)}
-                        className="h-8 w-8 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
+                        className="m3-transition h-8 w-8 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
                       >
                         <X className="h-4 w-4" />
                       </Button>
                     </div>
                   ))
                 ) : (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <div className="m3-fade-in flex flex-col items-center justify-center py-16 text-center">
                     <ListMusic className="mb-4 h-12 w-12 text-muted-foreground/40" />
                     <p className="font-medium">Your queue is empty</p>
                     <p className="mt-1 text-sm text-muted-foreground">Search and add songs to play</p>
@@ -688,7 +877,7 @@ export function AudioPlayer() {
 
       {/* Mobile Bottom Player */}
       {currentSong && (
-        <div className="elevation-2 flex items-center gap-3 border-t bg-card p-3 lg:hidden">
+        <div className="elevation-2 m3-slide-up fixed bottom-0 left-0 right-0 flex items-center gap-3 border-t bg-card p-3 lg:hidden">
           <img
             src={currentSong.thumbnail || "/placeholder.svg"}
             alt={currentSong.title}
@@ -703,7 +892,7 @@ export function AudioPlayer() {
             size="icon"
             onClick={togglePlay}
             disabled={isLoading || !audioUrl}
-            className="h-10 w-10 rounded-full"
+            className="m3-transition h-10 w-10 rounded-full hover:scale-110"
           >
             {isLoading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -715,6 +904,91 @@ export function AudioPlayer() {
           </Button>
         </div>
       )}
+
+      {/* About Dialog */}
+      <Dialog open={showAboutDialog} onOpenChange={setShowAboutDialog}>
+        <DialogContent className="m3-scale-in rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <div className="mb-4 flex items-center gap-3">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--google-red)]">
+                <Music2 className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <DialogTitle className="text-xl">Google Music</DialogTitle>
+                <DialogDescription>Version 1.0.0</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 text-sm text-muted-foreground">
+            <p>
+              A modern audio player inspired by Material Design 3 Expressive, featuring YouTube Music search, 
+              synchronized lyrics, and beautiful animations.
+            </p>
+            <p>
+              Built with Next.js, Tailwind CSS, and shadcn/ui components.
+            </p>
+            <div className="flex items-center gap-2 pt-2">
+              <span className="text-xs">Powered by</span>
+              <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">YouTube Music API</span>
+              <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">LRCLIB</span>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Credits Dialog */}
+      <Dialog open={showCreditsDialog} onOpenChange={setShowCreditsDialog}>
+        <DialogContent className="m3-scale-in rounded-3xl sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Heart className="h-5 w-5 text-[var(--google-red)]" />
+              Credits
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-xl bg-muted p-4">
+              <h4 className="mb-2 font-medium">Inspired By</h4>
+              <a 
+                href="https://github.com/koiverse/ArchiveTune" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="m3-transition flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                ArchiveTune by koiverse
+                <ExternalLink className="h-3 w-3" />
+              </a>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Material 3 Expressive YouTube Music client for Android
+              </p>
+            </div>
+            
+            <div className="rounded-xl bg-muted p-4">
+              <h4 className="mb-2 font-medium">APIs & Services</h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--google-blue)]" />
+                  ytmusic-api - YouTube Music search
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--google-green)]" />
+                  LRCLIB - Synchronized lyrics
+                </li>
+                <li className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--google-yellow)]" />
+                  Invidious / Piped - Audio streaming
+                </li>
+              </ul>
+            </div>
+
+            <div className="rounded-xl bg-muted p-4">
+              <h4 className="mb-2 font-medium">Design</h4>
+              <p className="text-sm text-muted-foreground">
+                Material Design 3 Expressive by Google
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
