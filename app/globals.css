@@ -126,6 +126,14 @@
   background: var(--foreground);
 }
 
+/* Add this right below the generic webkit scrollbar rules in globals.css */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
 /* ========================================
    M3 EXPRESSIVE ANIMATIONS
    ======================================== */
