@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import YTMusic from 'ytmusic-api'
 
-export const dynamic = 'force-dynamic'
-
 const ytmusic = new YTMusic()
 let initialized = false
 
@@ -35,7 +33,8 @@ export async function GET(
     const songs = (albumData.songs ||[]).map((song) => ({
       videoId: song.videoId,
       title: song.name,
-      artist: song.artist?.name || albumData.artist?.name || 'Unknown Artist',
+      artist: albumData.artist?.name || 'Unknown',
+      artistId: albumData.artist?.artistId || null,
       album: albumData.name || '',
       duration: song.duration || 0,
       thumbnail: formatThumbnail(albumData.thumbnails),
@@ -45,7 +44,7 @@ export async function GET(
       name: albumData.name,
       artist: albumData.artist?.name,
       year: albumData.year,
-      thumbnail: formatThumbnail(albumData.thumbnails),
+      thumbnails: albumData.thumbnails,
       songs
     })
   } catch (error) {
