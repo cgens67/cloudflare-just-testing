@@ -22,29 +22,46 @@ export async function GET(
     await ensureInitialized()
     const artistData = await ytmusic.getArtist(artistId)
     
-    // Format top songs
-    const topSongs = (artistData.topSongs || []).map((song) => {
-      let thumbUrl = song.thumbnails?.[song.thumbnails.length - 1]?.url || ''
-      if (thumbUrl.includes('=w') || thumbUrl.includes('-w')) {
-        thumbUrl = thumbUrl.replace(/([=-]w)\d+([=-]h)\d+/, '$11200$21200')
+    const formatThumbnail = (thumbnails: any[]) => {
+      let url = thumbnails?.[thumbnails.length - 1]?.url || ''
+      if (url.includes('=w') || url.includes('-w')) {
+        url = url.replace(/([=-]w)\d+([=-]h)\d+/, '$11200$21200')
       }
-      return {
-        videoId: song.videoId,
-        title: song.name,
-        artist: artistData.name,
-        artistId: artistId,
-        album: song.album?.name || '',
-        duration: song.duration || 0,
-        thumbnail: thumbUrl,
-      }
-    })
+      return url
+    }
+
+    const topSongs = (artistData.topSongs ||[]).map((song) => ({
+      videoId: song.videoId,
+      title: song.name,
+      artist: artistData.name,
+      artistId: artistId,
+      album: song.album?.name || '',
+      duration: song.duration || 0,
+      thumbnail: formatThumbnail(song.thumbnails),
+    }))
+
+    const albums = (artistData.albums ||[]).map((album) => ({
+      browseId: album.browseId,
+      title: album.title,
+      year: album.year,
+      thumbnail: formatThumbnail(album.thumbnails)
+    }))
+
+    const singles = (artistData.singles ||[]).map((single) => ({
+      browseId: single.browseId,
+      title: single.title,
+      year: single.year,
+      thumbnail: formatThumbnail(single.thumbnails)
+    }))
 
     return NextResponse.json({ 
       name: artistData.name,
       description: artistData.description,
       subscribers: artistData.subscribers,
       thumbnails: artistData.thumbnails,
-      topSongs 
+      topSongs,
+      albums,
+      singles
     })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch artist' }, { status: 500 })
