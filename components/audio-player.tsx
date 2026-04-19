@@ -38,7 +38,7 @@ import {
   Search, Shuffle, Repeat, Repeat1, Sun, Moon, Loader2, Music2,
   X, ListMusic, Mic2, MoreVertical, Info, Heart, ChevronDown,
   ChevronUp, ExternalLink, History, Library, UserCircle2, LogOut,
-  Maximize, Minimize, Settings, TrendingUp, ListPlus, Disc3, MicStage
+  Maximize, Minimize, Settings, TrendingUp, ListPlus, Disc3, MicVocal
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -52,6 +52,7 @@ const firebaseConfig = {
   appId: "1:1083596663051:web:52900f44e84034b7421a0e"
 };
 
+// Safely initialize Firebase for Vercel Next.js SSR
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 const auth = typeof window !== "undefined" ? getAuth(app) : null;
 const db = typeof window !== "undefined" ? getFirestore(app) : null;
@@ -86,7 +87,7 @@ interface LyricsData {
 
 export function AudioPlayer() {
   // UI & Player States
-  const[isDark, setIsDark] = useState(false)
+  const [isDark, setIsDark] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
@@ -94,18 +95,21 @@ export function AudioPlayer() {
   const[isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [searchHistory, setSearchHistory] = useState<string[]>([])
   const [queue, setQueue] = useState<Song[]>([])
-  const [currentIndex, setCurrentIndex] = useState(0)
+  const[currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const[currentTime, setCurrentTime] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
-  const[volume, setVolume] = useState(80)
-  const [isMuted, setIsMuted] = useState(false)
+  const [volume, setVolume] = useState(80)
+  const[isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
-  const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
-  const [isLoading, setIsLoading] = useState(false)
+  const[repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
+  const[isLoading, setIsLoading] = useState(false)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const[lyrics, setLyrics] = useState<LyricsData | null>(null)
-  const[currentLyricIndex, setCurrentLyricIndex] = useState(-1)
+  const [lyrics, setLyrics] = useState<LyricsData | null>(null)
+  const [currentLyricIndex, setCurrentLyricIndex] = useState(-1)
+  
+  // RESTORED MISSING VARIABLES FOR VERCEL BUILD
+  const [audioUrl, setAudioUrl] = useState<string | null>(null)
   
   // Tabs & Navigation
   const [activeTab, setActiveTab] = useState<'queue' | 'lyrics' | 'library' | 'explore' | 'artist'>('explore')
@@ -130,17 +134,17 @@ export function AudioPlayer() {
   const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [email, setEmail] = useState("")
-  const[password, setPassword] = useState("")
+  const [password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
   const [authError, setAuthError] = useState("")
-  const [displayNameInput, setDisplayNameInput] = useState("")
+  const[displayNameInput, setDisplayNameInput] = useState("")
   
   // Data States
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
   const [savedSongs, setSavedSongs] = useState<Song[]>([])
-  const[playlists, setPlaylists] = useState<Playlist[]>([])
+  const [playlists, setPlaylists] = useState<Playlist[]>([])
   
-  const [searchFocused, setSearchFocused] = useState(false)
+  const[searchFocused, setSearchFocused] = useState(false)
 
   const audioRef = useRef<HTMLAudioElement>(null)
   const lyricsContainerRef = useRef<HTMLDivElement>(null)
@@ -167,11 +171,13 @@ export function AudioPlayer() {
 
   // --- INITIALIZATION ---
   useEffect(() => {
+    // Load local history
     try {
       const history = localStorage.getItem('ganvo_search_history')
       if (history) setSearchHistory(JSON.parse(history))
     } catch (e) {}
 
+    // Load Explore Artists
     fetch('/api/music/explore')
       .then(res => res.json())
       .then(data => { if (data.artists) setExploreArtists(data.artists) })
@@ -185,6 +191,7 @@ export function AudioPlayer() {
       setUser(currentUser)
       if (currentUser) {
         setDisplayNameInput(currentUser.displayName || "")
+        // Fetch Cloud Library
         const userRef = doc(db, "users", currentUser.uid)
         const docSnap = await getDoc(userRef)
         if (docSnap.exists()) {
@@ -193,13 +200,18 @@ export function AudioPlayer() {
             setSavedSongs(data.savedSongs)
             setLikedSongs(new Set(data.savedSongs.map((s: Song) => s.videoId)))
           }
-          if (data.playlists) setPlaylists(data.playlists)
+          if (data.playlists) {
+            setPlaylists(data.playlists)
+          }
         } else {
+          // Initialize empty doc if it doesn't exist
           await setDoc(userRef, { savedSongs: [], playlists:[] })
         }
       } else {
+        // Fallback to Local Storage if signed out
         const saved = localStorage.getItem('ganvo_saved_songs')
         const localPlaylists = localStorage.getItem('ganvo_playlists')
+        
         if (saved) {
           const parsed = JSON.parse(saved)
           setSavedSongs(parsed)
@@ -208,13 +220,18 @@ export function AudioPlayer() {
           setSavedSongs([])
           setLikedSongs(new Set())
         }
-        if (localPlaylists) setPlaylists(JSON.parse(localPlaylists))
-        else setPlaylists([])
+        
+        if (localPlaylists) {
+          setPlaylists(JSON.parse(localPlaylists))
+        } else {
+          setPlaylists([])
+        }
       }
     })
     return () => unsubscribe()
   },[])
 
+  // --- SYNC HELPERS ---
   const syncToCloud = async (newSaved: Song[], newPlaylists: Playlist[]) => {
     if (user && db) {
       try {
@@ -242,6 +259,7 @@ export function AudioPlayer() {
       setEmail("")
       setPassword("")
     } catch (error: any) {
+      // Provide actionable error messages
       if (error.code === 'auth/operation-not-allowed') {
         setAuthError("Email/Password login is not enabled. Go to Firebase Console -> Authentication -> Sign-in Method and enable 'Email/Password'.")
       } else if (error.code === 'auth/invalid-credential') {
@@ -276,9 +294,11 @@ export function AudioPlayer() {
     if (auth?.currentUser) {
       try {
         await updateProfile(auth.currentUser, { displayName: displayNameInput })
-        setUser({ ...auth.currentUser }) 
+        setUser({ ...auth.currentUser }) // Force refresh
         setShowSettingsDialog(false)
-      } catch (e) { console.error(e) }
+      } catch (e) {
+        console.error(e)
+      }
     }
   }
 
@@ -286,8 +306,13 @@ export function AudioPlayer() {
   const handleCreatePlaylist = (e: React.FormEvent) => {
     e.preventDefault()
     if (!newPlaylistName.trim()) return
-    const newPlaylist: Playlist = { id: Date.now().toString(), name: newPlaylistName.trim(), songs: [] }
-    const updatedPlaylists = [...playlists, newPlaylist]
+    
+    const newPlaylist: Playlist = {
+      id: Date.now().toString(),
+      name: newPlaylistName.trim(),
+      songs: []
+    }
+    const updatedPlaylists =[...playlists, newPlaylist]
     setPlaylists(updatedPlaylists)
     syncToCloud(savedSongs, updatedPlaylists)
     setNewPlaylistName("")
@@ -297,6 +322,7 @@ export function AudioPlayer() {
   const addSongToPlaylist = (playlistId: string, song: Song) => {
     const updatedPlaylists = playlists.map(p => {
       if (p.id === playlistId) {
+        // Avoid duplicates
         if (!p.songs.find(s => s.videoId === song.videoId)) {
           return { ...p, songs: [...p.songs, song] }
         }
@@ -342,28 +368,42 @@ export function AudioPlayer() {
 
   // Debounced auto-search while typing
   useEffect(() => {
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
+    }
+
     if (!searchQuery.trim()) {
       setSearchResults([])
       setIsSearching(false)
       return
     }
+
     setIsSearching(true)
+    
     searchTimeoutRef.current = setTimeout(async () => {
       try {
         const response = await fetch(`/api/music/search?q=${encodeURIComponent(searchQuery)}`)
         const data = await response.json()
         setSearchResults(data.results ||[])
-      } catch (error) { console.error(error) } finally { setIsSearching(false) }
+      } catch (error) {
+        console.error("Search failed:", error)
+      } finally {
+        setIsSearching(false)
+      }
     }, 300)
-    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current) }
-  }, [searchQuery])
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  },[searchQuery])
 
   // Add song to queue and play
   const addToQueueAndPlay = async (song: Song) => {
     const saveSearchStr = searchQuery || song.title
     if (saveSearchStr.trim()) {
-      const newHistory =[saveSearchStr, ...searchHistory.filter(q => q !== saveSearchStr)].slice(0, 15)
+      const newHistory = [saveSearchStr, ...searchHistory.filter(q => q !== saveSearchStr)].slice(0, 15)
       setSearchHistory(newHistory)
       localStorage.setItem('ganvo_search_history', JSON.stringify(newHistory))
     }
@@ -381,34 +421,52 @@ export function AudioPlayer() {
     setSearchFocused(false)
   }
 
+  // Play a song from the library immediately
+  const playFromLibrary = (song: Song) => {
+    addToQueueAndPlay(song)
+  }
+
   // Load audio stream when song changes
   useEffect(() => {
     if (!currentSong) return
+
     const loadStream = async () => {
       setIsLoading(true)
       setAudioUrl(null)
       setLoadError(null)
+
       try {
         const response = await fetch(`/api/music/stream/${currentSong.videoId}`)
         const data = await response.json()
-        if (data.error) setLoadError(data.error)
-        else if (data.audioUrl) setAudioUrl(data.audioUrl)
-        else setLoadError("No audio stream available")
+
+        if (data.error) {
+          setLoadError(data.error)
+          return
+        }
+
+        if (data.audioUrl) {
+          setAudioUrl(data.audioUrl)
+        } else {
+          setLoadError("No audio stream available")
+        }
       } catch (error) {
         setLoadError("Network error. Please try again.")
       } finally {
         setIsLoading(false)
       }
     }
+
     loadStream()
   }, [currentSong?.videoId])
 
   // Load lyrics
   useEffect(() => {
     if (!currentSong) return
+
     const loadLyrics = async () => {
       setLyrics(null)
       setCurrentLyricIndex(-1)
+
       try {
         const params = new URLSearchParams({
           track: currentSong.title,
@@ -418,11 +476,13 @@ export function AudioPlayer() {
         })
         const response = await fetch(`/api/lyrics?${params}`)
         const data = await response.json()
+
         if (data.syncedLyrics || data.plainLyrics) {
           setLyrics({ syncedLyrics: data.syncedLyrics, plainLyrics: data.plainLyrics })
         }
       } catch (error) {}
     }
+
     loadLyrics()
   }, [currentSong?.videoId])
 
@@ -457,7 +517,7 @@ export function AudioPlayer() {
         }
       }
     }
-  },[currentTime, lyrics, currentLyricIndex])
+  }, [currentTime, lyrics, currentLyricIndex])
 
   const handleTimeUpdate = () => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime) }
   const handleLoadedMetadata = () => { if (audioRef.current) setDuration(audioRef.current.duration) }
@@ -477,7 +537,7 @@ export function AudioPlayer() {
     if (isPlaying) audioRef.current.pause()
     else audioRef.current.play().catch(e => e.name !== 'AbortError' && console.error(e))
     setIsPlaying(!isPlaying)
-  },[isPlaying, audioUrl])
+  }, [isPlaying, audioUrl])
 
   const playNext = useCallback(() => {
     if (queue.length === 0) return
@@ -487,7 +547,7 @@ export function AudioPlayer() {
       return
     }
     setCurrentIndex(nextIndex)
-  },[queue.length, currentIndex, shuffle, repeatMode])
+  }, [queue.length, currentIndex, shuffle, repeatMode])
 
   const playPrevious = useCallback(() => {
     if (queue.length === 0) return
@@ -496,7 +556,7 @@ export function AudioPlayer() {
       return
     }
     setCurrentIndex((currentIndex - 1 + queue.length) % queue.length)
-  },[queue.length, currentIndex, currentTime])
+  }, [queue.length, currentIndex, currentTime])
 
   const handleSeek = (value: number[]) => {
     if (audioRef.current) {
@@ -546,6 +606,38 @@ export function AudioPlayer() {
     const secs = Math.floor(seconds % 60)
     return `${mins}:${secs.toString().padStart(2, "0")}`
   }
+
+  // Force fetch stream logic directly overriding state to guarantee it restarts
+  const handleRetryStream = async () => {
+    if (!currentSong) return;
+    setLoadError(null);
+    setIsLoading(true);
+    
+    try {
+      const response = await fetch(`/api/music/stream/${currentSong.videoId}`);
+      const data = await response.json();
+      
+      if (data.audioUrl) {
+        setAudioUrl(data.audioUrl);
+        if (audioRef.current) {
+          audioRef.current.src = data.audioUrl;
+          audioRef.current.load();
+          const playPromise = audioRef.current.play();
+          if (playPromise !== undefined) {
+            playPromise.then(() => setIsPlaying(true)).catch(e => {
+              if (e.name !== 'AbortError') setLoadError("Playback failed. Try another song.");
+            });
+          }
+        }
+      } else {
+        setLoadError(data.error || "Failed to load stream");
+      }
+    } catch (e) {
+      setLoadError("Network error");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const VolumeIcon = isMuted || volume === 0 ? VolumeX : volume < 50 ? Volume1 : Volume2
   const showSearchDropdown = searchFocused && (searchResults.length > 0 || isSearching || (searchQuery.trim() === "" && searchHistory.length > 0))
@@ -763,7 +855,7 @@ export function AudioPlayer() {
                     <div className="flex flex-col md:flex-row items-center md:items-start gap-8 mb-12 bg-card p-6 md:p-8 rounded-[2.5rem] border shadow-sm">
                       <img src={currentArtistData.thumbnails?.[currentArtistData.thumbnails.length-1]?.url || "/placeholder.svg"} alt={currentArtistData.name} className="w-48 h-48 md:w-56 md:h-56 rounded-full object-cover shadow-xl" />
                       <div className="text-center md:text-left flex-1 flex flex-col justify-center">
-                        <div className="flex items-center justify-center md:justify-start gap-2 text-primary font-bold text-sm mb-2 uppercase tracking-widest"><MicStage className="h-4 w-4"/> Artist</div>
+                        <div className="flex items-center justify-center md:justify-start gap-2 text-primary font-bold text-sm mb-2 uppercase tracking-widest"><MicVocal className="h-4 w-4"/> Artist</div>
                         <h1 className="text-4xl md:text-6xl font-black tracking-tight mb-2">{currentArtistData.name}</h1>
                         <p className="text-muted-foreground font-semibold mb-4 text-lg">{currentArtistData.subscribers}</p>
                         <p className="text-sm leading-relaxed max-w-3xl text-muted-foreground/90 line-clamp-3 md:line-clamp-none">{currentArtistData.description}</p>
@@ -889,7 +981,7 @@ export function AudioPlayer() {
                       max={duration || 100}
                       step={0.1}
                       onValueChange={handleSeek}
-                      className="mb-3 cursor-grab active:cursor-grabbing[&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:transition-transform [&_[data-slot=thumb]]:duration-300 [&_[data-slot=thumb]]:ease-[cubic-bezier(0.2,0,0,1)] [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=thumb]]:border-2 [&_[data-slot=thumb]]:hover:scale-150 [&_[data-slot=track]]:h-2 [&_[data-slot=track]]:bg-muted"
+                      className="mb-3 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:transition-transform [&_[data-slot=thumb]]:duration-300 [&_[data-slot=thumb]]:ease-[cubic-bezier(0.2,0,0,1)] [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=thumb]]:border-2 [&_[data-slot=thumb]]:hover:scale-150 [&_[data-slot=track]]:h-2 [&_[data-slot=track]]:bg-muted"
                     />
                     <div className="flex justify-between text-xs font-bold tabular-nums text-muted-foreground/70">
                       <span>{formatTime(currentTime)}</span>
@@ -901,7 +993,7 @@ export function AudioPlayer() {
                   <div className="mb-8 flex items-center justify-center gap-4 sm:gap-6 w-full">
                     <Button variant="ghost" size="icon" onClick={() => setShuffle(!shuffle)} className={cn("h-12 w-12 rounded-full transition-all duration-300 active:scale-90", shuffle ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><Shuffle className="h-5 w-5" /></Button>
                     <Button variant="ghost" size="icon" onClick={playPrevious} className="h-14 w-14 rounded-full transition-all duration-300 hover:bg-muted active:scale-75 flex items-center justify-center"><SkipBack className="h-7 w-7 fill-current text-foreground" /></Button>
-                    <Button onClick={togglePlay} disabled={isLoading || !audioUrl} className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-[2rem] bg-primary shadow-xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-90 flex items-center justify-center", isPlaying && "scale-105 rounded-[1.5rem]")}>
+                    <Button onClick={togglePlay} disabled={isLoading || !audioUrl} className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-[2rem] bg-primary text-primary-foreground shadow-xl transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 active:scale-90 flex items-center justify-center", isPlaying && "scale-105 rounded-[1.5rem]")}>
                       {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-primary-foreground" /> : isPlaying ? <Pause className="h-7 w-7 fill-primary-foreground text-primary-foreground" /> : <Play className="h-7 w-7 fill-primary-foreground text-primary-foreground translate-x-[2px]" />}
                     </Button>
                     <Button variant="ghost" size="icon" onClick={playNext} className="h-14 w-14 rounded-full transition-all duration-300 hover:bg-muted active:scale-75 flex items-center justify-center"><SkipForward className="h-7 w-7 fill-current text-foreground" /></Button>
@@ -918,11 +1010,14 @@ export function AudioPlayer() {
                       <span className="w-8 flex-shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{isMuted ? 0 : volume}%</span>
                     </div>
                   </div>
+                  
+                  {/* Invisible spacer block so you can scroll far past the floating player */}
+                  <div className="h-40 shrink-0 lg:hidden w-full opacity-0 pointer-events-none" />
                 </div>
               ) : (
                 <div className="flex flex-col items-center px-4 text-center animate-in fade-in zoom-in-95 duration-700 ease-[cubic-bezier(0.2,0,0,1)]">
                   <div className="mb-8 flex h-40 w-40 items-center justify-center rounded-[2.5rem] bg-muted/50 shadow-inner transition-all duration-700 hover:scale-105">
-                    <Music2 className="h-20 w-20 text-muted-foreground/40" />
+                    <Music2 className="h-20 w-20 text-muted-foreground/40 transition-transform duration-700" />
                   </div>
                   <h2 className="mb-3 text-3xl font-extrabold tracking-tight transition-colors">Start Listening</h2>
                   <p className="max-w-xs text-base font-medium text-muted-foreground/80 leading-relaxed transition-colors">
@@ -934,7 +1029,7 @@ export function AudioPlayer() {
           )}
         </div>
 
-        {/* Desktop Sidebar - Queue, Lyrics, Library */}
+        {/* Desktop Sidebar - Queue, Lyrics, Library, Explore */}
         <div className="hidden w-80 flex-col border-l border-border/40 bg-card/40 backdrop-blur-2xl lg:flex xl:w-[420px] overflow-hidden min-h-0 shadow-[-10px_0_30px_rgba(0,0,0,0.03)] z-20 transition-all duration-500">
           <div className="flex p-3 gap-2 bg-muted/20 border-b border-border/40 flex-wrap">
             {['explore', 'queue', 'lyrics', 'library'].map((tab) => (
@@ -1120,11 +1215,11 @@ export function AudioPlayer() {
 
               <div className="flex items-center justify-between w-full mb-8 px-2">
                 <Button variant="ghost" size="icon" onClick={() => setShuffle(!shuffle)} className={cn("h-12 w-12 rounded-full", shuffle && "bg-primary/20 text-primary")}><Shuffle className="h-6 w-6" /></Button>
-                <Button variant="ghost" size="icon" onClick={playPrevious} className="h-16 w-16 rounded-full"><SkipBack className="h-8 w-8 fill-current" /></Button>
+                <Button variant="ghost" size="icon" onClick={playPrevious} className="h-16 w-16 rounded-full"><SkipBack className="h-8 w-8 fill-current text-foreground" /></Button>
                 <Button onClick={togglePlay} className="h-24 w-24 rounded-[2.5rem] bg-primary shadow-xl hover:scale-105 transition-transform active:scale-95 flex items-center justify-center">
                    {isPlaying ? <Pause className="h-10 w-10 fill-primary-foreground text-primary-foreground" /> : <Play className="h-10 w-10 fill-primary-foreground text-primary-foreground translate-x-1" />}
                 </Button>
-                <Button variant="ghost" size="icon" onClick={playNext} className="h-16 w-16 rounded-full"><SkipForward className="h-8 w-8 fill-current" /></Button>
+                <Button variant="ghost" size="icon" onClick={playNext} className="h-16 w-16 rounded-full"><SkipForward className="h-8 w-8 fill-current text-foreground" /></Button>
                 <Button variant="ghost" size="icon" onClick={() => setRepeatMode(repeatMode === "off" ? "all" : repeatMode === "all" ? "one" : "off")} className={cn("h-12 w-12 rounded-full", repeatMode !== "off" && "bg-primary/20 text-primary")}>
                   {repeatMode === "one" ? <Repeat1 className="h-6 w-6" /> : <Repeat className="h-6 w-6" />}
                 </Button>
