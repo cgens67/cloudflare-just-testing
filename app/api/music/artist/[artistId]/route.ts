@@ -24,8 +24,9 @@ export async function GET(
     
     const formatThumbnail = (thumbnails: any[]) => {
       let url = thumbnails?.[thumbnails.length - 1]?.url || ''
+      // Force perfect square crop (-c)
       if (url.includes('=w') || url.includes('-w')) {
-        url = url.replace(/([=-]w)\d+([=-]h)\d+/, '$11200$21200')
+        url = url.replace(/([=-]w)\d+([=-]h)\d+.*/, '$11200$21200-c')
       }
       return url
     }
