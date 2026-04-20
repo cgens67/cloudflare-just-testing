@@ -551,7 +551,7 @@ export function AudioPlayer() {
     addToQueueAndPlay(song)
   }
 
-  // Load audio stream when song changes - highly reliable client-side fallback logic
+  // Load audio stream when song changes
   useEffect(() => {
     if (!currentSong) return
 
@@ -562,64 +562,15 @@ export function AudioPlayer() {
 
       try {
         const vId = currentSong.videoId;
-        let finalUrl = null;
 
-        // 1. Try Ryzen API (fast & reliable CORS)
-        try {
-          const ryzenRes = await fetch(`https://api.ryzendesu.vip/api/downloader/ytmp3?url=https://youtu.be/${vId}`);
-          if (ryzenRes.ok) {
-            const data = await ryzenRes.json();
-            if (data.url || data.download_url) finalUrl = data.url || data.download_url;
-          }
-        } catch(e){}
+        // Server route handles InnerTube (primary) + Piped + Invidious fallbacks
+        const response = await fetch(`/api/music/stream/${vId}?quality=${audioQuality}`)
+        const data = await response.json()
 
-        // 2. Try Cobalt API
-        if (!finalUrl) {
-          try {
-            const cobaltRes = await fetch('https://api.cobalt.tools', {
-              method: 'POST',
-              headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url: `https://www.youtube.com/watch?v=${vId}`, downloadMode: 'audio' })
-            });
-            if (cobaltRes.ok) {
-              const data = await cobaltRes.json();
-              if (data.url) finalUrl = data.url;
-            }
-          } catch(e){}
-        }
-
-        // 3. Try Piped API directly
-        if (!finalUrl) {
-          const PIPED_INSTANCES =['https://pipedapi.kavin.rocks', 'https://api.piped.yt', 'https://pipedapi.adminforge.de'];
-          for (const instance of PIPED_INSTANCES) {
-            try {
-              const res = await fetch(`${instance}/streams/${vId}`);
-              if (res.ok) {
-                const data = await res.json();
-                const streams = (data.audioStreams ||[])
-                  .filter((s: any) => s.url && s.mimeType?.includes('audio'))
-                  .sort((a: any, b: any) => audioQuality === 'Low' ? (a.bitrate || 0) - (b.bitrate || 0) : (b.bitrate || 0) - (a.bitrate || 0));
-                if (streams.length > 0) {
-                  finalUrl = streams[0].url;
-                  break;
-                }
-              }
-            } catch(e){}
-          }
-        }
-
-        // 4. Fallback to API route
-        if (!finalUrl) {
-          const response = await fetch(`/api/music/stream/${vId}?quality=${audioQuality}`)
-          const data = await response.json()
-          if (data.audioUrl) finalUrl = data.audioUrl;
-          else if (data.error) throw new Error(data.error);
-        }
-
-        if (finalUrl) {
-          setAudioUrl(finalUrl)
+        if (data.audioUrl) {
+          setAudioUrl(data.audioUrl)
         } else {
-          setLoadError("No audio stream available")
+          throw new Error(data.error || "No audio stream available")
         }
       } catch (error: any) {
         setLoadError(error.message || "Network error. Please try again.")
