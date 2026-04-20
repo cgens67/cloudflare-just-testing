@@ -25,7 +25,8 @@ import {
   X, ListMusic, Mic2, MoreVertical, Info, Heart, ChevronDown,
   ChevronUp, ExternalLink, History, Library, UserCircle2, LogOut,
   Maximize, Minimize, Settings, TrendingUp, ListPlus, Disc3, MicVocal,
-  ArrowLeft, Palette, LayoutTemplate, CornerUpRight, AudioLines, Type, Star, FileText, Copyright
+  ArrowLeft, Palette, LayoutTemplate, CornerUpRight, AudioLines, Type, Star, 
+  ChevronLeft, ChevronRight, Speaker, ListFilter
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -49,19 +50,37 @@ interface Playlist { id: string; name: string; songs: Song[]; }
 interface LyricLine { time: number; text: string; }
 interface LyricsData { syncedLyrics: LyricLine[] | null; plainLyrics: string | null; }
 
+const ScrollableRow = ({ children, title, icon: Icon }: { children: React.ReactNode, title?: string, icon?: any }) => {
+  const rowRef = useRef<HTMLDivElement>(null)
+  return (
+    <div>
+      {title && Icon && <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Icon className="h-6 w-6 text-primary"/> {title}</h3>}
+      <div className="relative group">
+        <Button variant="secondary" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: -400, behavior: 'smooth' })}><ChevronLeft className="h-5 w-5 text-foreground" /></Button>
+        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 2%, black 98%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 2%, black 98%, transparent)' }} className="w-full overflow-hidden">
+          <div ref={rowRef} className="flex overflow-x-auto pb-4 gap-4 md:gap-6 snap-x no-scrollbar py-4 px-4 -my-4 scroll-smooth">
+            {children}
+          </div>
+        </div>
+        <Button variant="secondary" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: 400, behavior: 'smooth' })}><ChevronRight className="h-5 w-5 text-foreground" /></Button>
+      </div>
+    </div>
+  )
+}
+
 export function AudioPlayer() {
   const[isDark, setIsDark] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   
   const[searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
-  const [searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
+  const[searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
   const [isSearching, setIsSearching] = useState(false)
   const[isSearchExpanded, setIsSearchExpanded] = useState(false)
   const[searchHistory, setSearchHistory] = useState<string[]>([])
   const [searchFocused, setSearchFocused] = useState(false)
   
-  const [queue, setQueue] = useState<Song[]>([])
+  const[queue, setQueue] = useState<Song[]>([])
   const[currentIndex, setCurrentIndex] = useState(0)
   const[isPlaying, setIsPlaying] = useState(false)
   const[currentTime, setCurrentTime] = useState(0)
@@ -70,11 +89,11 @@ export function AudioPlayer() {
   const[isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
-  const [isLoading, setIsLoading] = useState(false)
+  const[isLoading, setIsLoading] = useState(false)
   const[loadError, setLoadError] = useState<string | null>(null)
   
   const[playbackRate, setPlaybackRate] = useState(1)
-  const [preservesPitch, setPreservesPitch] = useState(true)
+  const[preservesPitch, setPreservesPitch] = useState(true)
 
   const [lyrics, setLyrics] = useState<LyricsData | null>(null)
   const[currentLyricIndex, setCurrentLyricIndex] = useState(-1)
@@ -84,7 +103,7 @@ export function AudioPlayer() {
   const [isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'lyrics' | 'queue'>('player')
 
-  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists: [], songs: [], albums:[]})
+  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs: [], albums:[]})
   const[isExploreLoading, setIsExploreLoading] = useState(true)
   const[exploreError, setExploreError] = useState(false)
   
@@ -97,8 +116,6 @@ export function AudioPlayer() {
   // Dialog States
   const [showAboutDialog, setShowAboutDialog] = useState(false)
   const[showCreditsDialog, setShowCreditsDialog] = useState(false)
-  const[showTosDialog, setShowTosDialog] = useState(false)
-  const[showCopyrightDialog, setShowCopyrightDialog] = useState(false)
   const[showAccountSettings, setShowAccountSettings] = useState(false) 
   const [showPlayerSettings, setShowPlayerSettings] = useState(false) 
   const[showEffectsDialog, setShowEffectsDialog] = useState(false)
@@ -112,12 +129,15 @@ export function AudioPlayer() {
   const[dominantColor, setDominantColor] = useState<string | null>(null)
   const [lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
   const [lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
+  const [audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
+  const [autoPlaySimilar, setAutoPlaySimilar] = useState(false)
+  const [normalizeVolume, setNormalizeVolume] = useState(true)
   
   // Auth States
   const[showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const[email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const[password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
   const[authError, setAuthError] = useState("")
   const[displayNameInput, setDisplayNameInput] = useState("")
@@ -239,8 +259,8 @@ export function AudioPlayer() {
           const localSaved = JSON.parse(localStorage.getItem('ganvo_saved_songs') || '[]')
           const localPlaylists = JSON.parse(localStorage.getItem('ganvo_playlists') || '[]')
           
-          const combinedSaved = [...(data.savedSongs || []), ...localSaved].filter((v,i,a) => a.findIndex(t => (t.videoId === v.videoId)) === i)
-          const combinedPlaylists = [...(data.playlists || []), ...localPlaylists].filter((v,i,a) => a.findIndex(t => (t.id === v.id)) === i)
+          const combinedSaved =[...(data.savedSongs || []), ...localSaved].filter((v,i,a) => a.findIndex(t => (t.videoId === v.videoId)) === i)
+          const combinedPlaylists =[...(data.playlists || []), ...localPlaylists].filter((v,i,a) => a.findIndex(t => (t.id === v.id)) === i)
           
           setSavedSongs(combinedSaved)
           setLikedSongs(new Set(combinedSaved.map((s: Song) => s.videoId)))
@@ -407,6 +427,9 @@ export function AudioPlayer() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
+      if (e.target instanceof Element && e.target.closest('[data-radix-popper-content-wrapper]')) {
+        return; // Clicked inside a radix select/dropdown dropdown
+      }
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setSearchFocused(false)
         setIsSearchExpanded(false)
@@ -856,9 +879,6 @@ export function AudioPlayer() {
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowAboutDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
                 <Info className="h-4 w-4 text-muted-foreground text-current" /> About Ganvo
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowCreditsDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
-                <Heart className="h-4 w-4 text-muted-foreground text-current" /> Credits & APIs
-              </DropdownMenuItem>
               {user && (
                 <>
                   <DropdownMenuSeparator />
@@ -897,48 +917,38 @@ export function AudioPlayer() {
                ) : (
                  <div className="space-y-12">
                    {exploreData?.creatorsPicks?.length > 0 && (
-                     <div>
-                       <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Star className="h-6 w-6 text-primary"/> Creator's Top Picks</h3>
-                       <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }} className="w-full overflow-hidden">
-                         <div className="flex overflow-x-auto pb-4 gap-6 snap-x no-scrollbar py-4 px-4 -my-4">
-                            {exploreData.creatorsPicks.map((song, idx) => (
-                              <div key={idx} onClick={() => addToQueueAndPlay(song)} className="group flex flex-col gap-3 w-40 sm:w-48 shrink-0 cursor-pointer snap-start">
-                                <div className="overflow-hidden rounded-2xl shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95 aspect-square relative">
-                                  <img src={song.thumbnail} className="w-full h-full object-cover" />
-                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                                    <Play className="h-10 w-10 text-white fill-white" />
-                                  </div>
-                                </div>
-                                <div>
-                                  <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">{song.title}</p>
-                                  <p className="text-xs font-medium text-muted-foreground mt-0.5 truncate">{song.artist}</p>
-                                </div>
+                     <ScrollableRow title="Creator's Top Picks" icon={Star}>
+                        {exploreData.creatorsPicks.map((song, idx) => (
+                          <div key={idx} onClick={() => addToQueueAndPlay(song)} className="group flex flex-col gap-3 w-40 sm:w-48 shrink-0 cursor-pointer snap-start">
+                            <div className="overflow-hidden rounded-2xl shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95 aspect-square relative">
+                              <img src={song.thumbnail} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                                <Play className="h-10 w-10 text-white fill-white" />
                               </div>
-                            ))}
-                         </div>
-                       </div>
-                     </div>
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">{song.title}</p>
+                              <p className="text-xs font-medium text-muted-foreground mt-0.5 truncate">{song.artist}</p>
+                            </div>
+                          </div>
+                        ))}
+                     </ScrollableRow>
                    )}
                    {exploreData?.artists?.length > 0 && (
-                     <div>
-                       <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><UserCircle2 className="h-6 w-6 text-primary"/> Top Artists</h3>
-                       <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }} className="w-full overflow-hidden">
-                         <div className="flex overflow-x-auto pb-4 gap-6 snap-x no-scrollbar py-4 px-4 -my-4">
-                            {exploreData.artists.map((artist, idx) => (
-                              <div key={artist.artistId || idx} onClick={() => loadArtistView(artist.artistId)} className="group flex flex-col items-center gap-4 cursor-pointer snap-start w-32 sm:w-40 shrink-0">
-                                <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-lg transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95">
-                                  <img src={artist.thumbnail || "/placeholder.svg"} alt={artist.name} className="w-full h-full object-cover" />
-                                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                </div>
-                                <div className="text-center w-full px-2">
-                                  <p className="font-bold text-sm truncate transition-colors group-hover:text-primary text-foreground">{artist.name}</p>
-                                  <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">{artist.subscribers}</p>
-                                </div>
-                              </div>
-                            ))}
-                         </div>
-                       </div>
-                     </div>
+                     <ScrollableRow title="Top Artists" icon={UserCircle2}>
+                        {exploreData.artists.map((artist, idx) => (
+                          <div key={artist.artistId || idx} onClick={() => loadArtistView(artist.artistId)} className="group flex flex-col items-center gap-4 cursor-pointer snap-start w-32 sm:w-40 shrink-0">
+                            <div className="relative w-full aspect-square rounded-full overflow-hidden shadow-lg transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95">
+                              <img src={artist.thumbnail || "/placeholder.svg"} alt={artist.name} className="w-full h-full object-cover" />
+                              <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                            </div>
+                            <div className="text-center w-full px-2">
+                              <p className="font-bold text-sm truncate transition-colors group-hover:text-primary text-foreground">{artist.name}</p>
+                              <p className="text-xs text-muted-foreground font-medium mt-0.5 truncate">{artist.subscribers}</p>
+                            </div>
+                          </div>
+                        ))}
+                     </ScrollableRow>
                    )}
                    {exploreData?.songs?.length > 0 && (
                      <div>
@@ -976,24 +986,19 @@ export function AudioPlayer() {
                      </div>
                    )}
                    {exploreData?.albums?.length > 0 && (
-                     <div>
-                       <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Disc3 className="h-6 w-6 text-primary"/> Top Albums</h3>
-                       <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }} className="w-full overflow-hidden">
-                         <div className="flex overflow-x-auto pb-4 gap-6 snap-x no-scrollbar py-4 px-4 -my-4">
-                            {exploreData.albums.map((album, idx) => (
-                              <div key={idx} onClick={() => loadAlbumView(album.albumId)} className="flex flex-col gap-3 w-40 sm:w-48 shrink-0 group cursor-pointer snap-start">
-                                <div className="overflow-hidden rounded-2xl shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95 aspect-square relative">
-                                  <img src={album.thumbnail} className="w-full h-full object-cover" />
-                                </div>
-                                <div>
-                                  <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">{album.title}</p>
-                                  <p className="text-xs font-medium text-muted-foreground mt-0.5">{album.artist} • {album.year}</p>
-                                </div>
-                              </div>
-                            ))}
-                         </div>
-                       </div>
-                     </div>
+                     <ScrollableRow title="Top Albums" icon={Disc3}>
+                        {exploreData.albums.map((album, idx) => (
+                          <div key={idx} onClick={() => loadAlbumView(album.albumId)} className="flex flex-col gap-3 w-40 sm:w-48 shrink-0 group cursor-pointer snap-start">
+                            <div className="overflow-hidden rounded-2xl shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95 aspect-square relative">
+                              <img src={album.thumbnail} className="w-full h-full object-cover" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-sm truncate text-foreground group-hover:text-primary transition-colors">{album.title}</p>
+                              <p className="text-xs font-medium text-muted-foreground mt-0.5">{album.artist} • {album.year}</p>
+                            </div>
+                          </div>
+                        ))}
+                     </ScrollableRow>
                    )}
                  </div>
                )}
@@ -1057,9 +1062,7 @@ export function AudioPlayer() {
 
                     {currentArtistData.albums?.length > 0 && (
                       <div className="mb-12">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Disc3 className="h-6 w-6 text-primary"/> Albums</h3>
-                        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }} className="w-full overflow-hidden">
-                          <div className="flex overflow-x-auto pb-4 gap-4 snap-x no-scrollbar py-4 px-4 -my-4">
+                        <ScrollableRow title="Albums" icon={Disc3}>
                             {currentArtistData.albums.map((album: any, idx: number) => (
                               <div key={idx} onClick={() => loadAlbumView(album.albumId)} className="flex flex-col gap-3 w-40 sm:w-48 shrink-0 group cursor-pointer snap-start">
                                 <div className="overflow-hidden rounded-2xl shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95 aspect-square relative">
@@ -1071,16 +1074,13 @@ export function AudioPlayer() {
                                 </div>
                               </div>
                             ))}
-                          </div>
-                        </div>
+                        </ScrollableRow>
                       </div>
                     )}
                     
                     {currentArtistData.singles?.length > 0 && (
                       <div className="mb-8">
-                        <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Music2 className="h-6 w-6 text-primary"/> Singles & EPs</h3>
-                        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }} className="w-full overflow-hidden">
-                          <div className="flex overflow-x-auto pb-4 gap-4 snap-x no-scrollbar py-4 px-4 -my-4">
+                        <ScrollableRow title="Singles & EPs" icon={Music2}>
                             {currentArtistData.singles.map((single: any, idx: number) => (
                               <div key={idx} onClick={() => loadAlbumView(single.albumId)} className="flex flex-col gap-3 w-40 sm:w-48 shrink-0 group cursor-pointer snap-start">
                                 <div className="overflow-hidden rounded-2xl shadow-md transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105 group-active:scale-95 aspect-square relative">
@@ -1092,8 +1092,7 @@ export function AudioPlayer() {
                                 </div>
                               </div>
                             ))}
-                          </div>
-                        </div>
+                        </ScrollableRow>
                       </div>
                     )}
                   </div>
@@ -1217,7 +1216,7 @@ export function AudioPlayer() {
                   )}
                 </div>
              </div>
-          ) : activeTab === 'player' ? (
+          ) : ['player', 'lyrics', 'queue', 'library'].includes(activeTab) ? (
             <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 md:px-8 relative">
               {loadError && (
                 <div className="absolute top-4 bg-destructive/90 text-destructive-foreground px-4 py-2 rounded-xl font-bold text-sm shadow-lg z-50 animate-in fade-in slide-in-from-top-4 text-center mx-4">
@@ -1501,8 +1500,8 @@ export function AudioPlayer() {
       />
       <div 
         className={cn(
-          "fixed inset-x-0 bottom-0 z-[200] bg-background flex flex-col transition-transform duration-500 ease-out lg:hidden rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.3)] transition-colors duration-1000",
-          isMobilePlayerExpanded ? "translate-y-0 h-[96dvh]" : "translate-y-[100%] h-[96dvh]"
+          "fixed inset-x-0 bottom-0 z-[200] bg-background flex flex-col transition-all duration-500 ease-in-out lg:hidden rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.3)]",
+          isMobilePlayerExpanded ? "translate-y-0 h-[100dvh]" : "translate-y-[100%] h-[100dvh]"
         )}
       >
         {dynamicTheme && playerBgStyle === 'Gradient' && dominantColor && (
@@ -1535,7 +1534,7 @@ export function AudioPlayer() {
             <Button variant={mobilePlayerTab === 'queue' ? 'default' : 'ghost'} size="sm" onClick={() => setMobilePlayerTab('queue')} className="rounded-full px-4 font-bold text-xs text-foreground outline-none focus:outline-none">Queue</Button>
           </div>
           
-          <DropdownMenu>
+          <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
                <Button variant="ghost" size="icon" className="h-12 w-12 rounded-full hover:bg-muted active:scale-90 text-foreground outline-none focus:outline-none">
                 <MoreVertical className="h-6 w-6 text-current" />
@@ -1547,13 +1546,6 @@ export function AudioPlayer() {
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowEffectsDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground outline-none focus:outline-none">
                 <AudioLines className="h-4 w-4 text-muted-foreground text-current" /> Audio Effects
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowTosDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground outline-none focus:outline-none">
-                <FileText className="h-4 w-4 text-muted-foreground text-current" /> Terms of Service
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowCopyrightDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground outline-none focus:outline-none">
-                <Copyright className="h-4 w-4 text-muted-foreground text-current" /> Copyright
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1683,7 +1675,7 @@ export function AudioPlayer() {
                 value={[playbackRate]} 
                 min={0.5} max={2.0} step={0.05} 
                 onValueChange={(val) => setPlaybackRate(val[0])} 
-                className="[&_[data-slot=range]]:bg-[var(--google-blue)] [&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
+                className="[&_[data-slot=range]]:bg-blue-500 [&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
               />
               <div className="flex justify-between text-xs font-semibold text-muted-foreground">
                 <span>0.5x</span>
@@ -1773,8 +1765,55 @@ export function AudioPlayer() {
                     value={[thumbnailRadius]} 
                     min={0} max={64} step={2} 
                     onValueChange={(val) => setThumbnailRadius(val[0])} 
-                    className="[&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
+                    className="[&_[data-slot=range]]:bg-blue-500 [&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
                   />
+               </div>
+               
+             </div>
+             
+             <div className="px-4 py-4 space-y-1">
+               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Audio</h3>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><Speaker className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-bold text-base text-foreground">Audio Quality</span>
+                     <span className="text-xs font-normal text-muted-foreground">Streaming quality for playback.</span>
+                   </div>
+                 </div>
+                 <Select value={audioQuality} onValueChange={(v: any) => setAudioQuality(v)}>
+                    <SelectTrigger className="w-[110px] rounded-xl font-bold bg-muted border-none text-foreground text-xs h-9 shrink-0 outline-none focus:ring-0">
+                      <SelectValue placeholder="Quality" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl z-[500]">
+                      <SelectItem value="High" className="font-bold py-2 text-xs">High</SelectItem>
+                      <SelectItem value="Standard" className="font-bold py-2 text-xs">Standard</SelectItem>
+                      <SelectItem value="Low" className="font-bold py-2 text-xs">Low</SelectItem>
+                    </SelectContent>
+                  </Select>
+               </div>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><ListFilter className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-semibold text-base text-foreground">Auto-play similar songs</span>
+                     <span className="text-xs font-normal text-muted-foreground">Keep the music going.</span>
+                   </div>
+                 </div>
+                 <Switch checked={autoPlaySimilar} onCheckedChange={setAutoPlaySimilar} className="shrink-0" />
+               </div>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><AudioLines className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-semibold text-base text-foreground">Normalize volume</span>
+                     <span className="text-xs font-normal text-muted-foreground">Set the same volume for all songs.</span>
+                   </div>
+                 </div>
+                 <Switch checked={normalizeVolume} onCheckedChange={setNormalizeVolume} className="shrink-0" />
                </div>
                
              </div>
@@ -1822,33 +1861,6 @@ export function AudioPlayer() {
                </div>
                
              </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showTosDialog} onOpenChange={setShowTosDialog}>
-        <DialogContent className="rounded-[2rem] sm:max-w-md p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold flex items-center gap-3 text-foreground"><FileText className="h-6 w-6 text-primary"/> Terms of Service</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 text-sm text-muted-foreground leading-relaxed space-y-4">
-            <p>Welcome to Ganvo Music.</p>
-            <p>By using this service, you agree to respect the intellectual property of the artists, creators, and third-party services providing the content.</p>
-            <p>This app is for personal, non-commercial use only. Streaming services are provided via public APIs (Cobalt, Piped, Invidious) and are subject to their respective availability and terms.</p>
-            <p>We do not host or store any audio files on our servers.</p>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showCopyrightDialog} onOpenChange={setShowCopyrightDialog}>
-        <DialogContent className="rounded-[2rem] sm:max-w-md p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold flex items-center gap-3 text-foreground"><Copyright className="h-6 w-6 text-primary"/> Copyright</DialogTitle>
-          </DialogHeader>
-          <div className="mt-4 text-sm text-muted-foreground leading-relaxed space-y-4">
-            <p>All music metadata, album arts, and audio streams are provided through third-party APIs (YouTube Music, Piped, Invidious, Cobalt).</p>
-            <p>Lyrics are provided by LRCLIB and KuGou under their respective licenses.</p>
-            <p>Ganvo Music acts merely as a client and a search aggregator. It does not control or distribute copyrighted material.</p>
           </div>
         </DialogContent>
       </Dialog>
@@ -1908,11 +1920,36 @@ export function AudioPlayer() {
       </Dialog>
 
       <Dialog open={showAboutDialog} onOpenChange={setShowAboutDialog}>
-        <DialogContent className="rounded-[2rem] sm:max-w-md p-6 sm:p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]"><DialogHeader><div className="mb-5 flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-primary shadow-lg"><Music2 className="h-8 w-8 text-primary-foreground fill-current" /></div><div><DialogTitle className="text-2xl font-extrabold tracking-tight text-foreground">Ganvo Music</DialogTitle><DialogDescription className="font-semibold mt-1">Version 1.0.0</DialogDescription></div></div></DialogHeader><div className="space-y-4 text-sm font-medium text-muted-foreground leading-relaxed mt-2"><p>A modern audio player inspired by Material Design 3 Expressive, featuring seamless YouTube Music search, synchronized lyrics, and fluid animations.</p><p>Built with Next.js App Router, Tailwind CSS, Firebase Auth, and shadcn/ui.</p><div className="flex flex-wrap items-center gap-2 pt-4"><span className="text-xs font-bold uppercase tracking-wider text-foreground">Powered by</span><span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground shadow-sm">YouTube Music API</span><span className="rounded-full bg-secondary px-3 py-1.5 text-xs font-bold text-secondary-foreground shadow-sm">LRCLIB & KuGou</span></div></div></DialogContent>
+        <DialogContent className="rounded-[2rem] sm:max-w-md p-6 sm:p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]">
+          <DialogHeader>
+            <div className="mb-5 flex items-center gap-4">
+              <div className="flex h-16 w-16 items-center justify-center rounded-[1.5rem] bg-primary shadow-lg"><Music2 className="h-8 w-8 text-primary-foreground fill-current" /></div>
+              <div>
+                <DialogTitle className="text-2xl font-extrabold tracking-tight text-foreground">Ganvo Music</DialogTitle>
+                <DialogDescription className="font-semibold mt-1">Version 1.0.0</DialogDescription>
+              </div>
+            </div>
+          </DialogHeader>
+          <div className="space-y-4 text-sm font-medium text-muted-foreground leading-relaxed mt-2">
+            <p>A modern audio player inspired by Material Design 3 Expressive, featuring seamless YouTube Music search, synchronized lyrics, and fluid animations.</p>
+            <p>Built with Next.js App Router, Tailwind CSS, Firebase Auth, and shadcn/ui.</p>
+            
+            <div className="flex flex-col gap-2 mt-4 bg-muted/30 p-4 rounded-2xl">
+              <div>
+                <h4 className="font-bold text-foreground mb-1">Terms of Service</h4>
+                <p className="text-xs">By using this service, you agree to respect the intellectual property of the artists. This app is for personal, non-commercial use only.</p>
+              </div>
+              <div className="mt-2">
+                <h4 className="font-bold text-foreground mb-1">Copyright</h4>
+                <p className="text-xs">All music metadata, album arts, and audio streams are provided through third-party APIs. Ganvo Music acts merely as a client.</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
       </Dialog>
 
       <Dialog open={showCreditsDialog} onOpenChange={setShowCreditsDialog}>
-        <DialogContent className="rounded-[2rem] sm:max-w-md p-6 sm:p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]"><DialogHeader><DialogTitle className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-foreground"><Heart className="h-7 w-7 text-[var(--google-red)] fill-[var(--google-red)]" />Credits</DialogTitle></DialogHeader><div className="space-y-4 mt-4"><div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50"><h4 className="mb-2 font-extrabold text-base text-foreground">Inspired By</h4><a href="https://github.com/koiverse/ArchiveTune" target="_blank" className="flex items-center gap-2 text-sm font-bold text-primary hover:underline transition-all active:scale-95 w-fit outline-none focus:outline-none">ArchiveTune by koiverse<ExternalLink className="h-4 w-4" /></a><p className="mt-2 text-xs font-semibold text-muted-foreground leading-relaxed">Material 3 Expressive YouTube Music client for Android</p></div><div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50"><h4 className="mb-3 font-extrabold text-base text-foreground">APIs & Services</h4><ul className="space-y-3 text-sm font-semibold text-muted-foreground"><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-sm" />ytmusic-api (YouTube Music search)</li><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm" />LRCLIB & KuGou (Synchronized lyrics)</li><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-yellow-500 shadow-sm" />Cobalt & Piped API (Audio streaming)</li></ul></div></div></DialogContent>
+        <DialogContent className="rounded-[2rem] sm:max-w-md p-6 sm:p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]"><DialogHeader><DialogTitle className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-foreground"><Heart className="h-7 w-7 text-[var(--google-red)] fill-[var(--google-red)]" />Credits</DialogTitle></DialogHeader><div className="space-y-4 mt-4"><div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50"><h4 className="mb-2 font-extrabold text-base text-foreground">Inspired By</h4><a href="https://github.com/koiverse/ArchiveTune" target="_blank" className="flex items-center gap-2 text-sm font-bold text-primary hover:underline transition-all active:scale-95 w-fit outline-none focus:outline-none">ArchiveTune by koiverse<ExternalLink className="h-4 w-4" /></a><p className="mt-2 text-xs font-semibold text-muted-foreground leading-relaxed">Material 3 Expressive YouTube Music client for Android</p></div><div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50"><h4 className="mb-3 font-extrabold text-base text-foreground">APIs & Services</h4><ul className="space-y-3 text-sm font-semibold text-muted-foreground"><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-sm" />ytmusic-api (YouTube Music search)</li><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm" />LRCLIB & KuGou (Synchronized lyrics)</li><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-yellow-500 shadow-sm" />Cobalt, Ryzen & Piped API (Audio streams)</li></ul></div></div></DialogContent>
       </Dialog>
     </div>
   )
