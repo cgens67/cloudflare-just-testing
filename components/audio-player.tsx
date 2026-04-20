@@ -57,8 +57,8 @@ const ScrollableRow = ({ children, title, icon: Icon }: { children: React.ReactN
       {title && Icon && <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Icon className="h-6 w-6 text-primary"/> {title}</h3>}
       <div className="relative group">
         <Button variant="secondary" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: -400, behavior: 'smooth' })}><ChevronLeft className="h-5 w-5 text-foreground" /></Button>
-        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 2%, black 98%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 2%, black 98%, transparent)' }} className="w-full overflow-hidden">
-          <div ref={rowRef} className="flex overflow-x-auto pb-4 gap-4 md:gap-6 snap-x no-scrollbar py-8 px-4 -my-8 scroll-smooth">
+        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 2%, black 98%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 2%, black 98%, transparent)' }} className="w-full overflow-hidden -my-6 py-6">
+          <div ref={rowRef} className="flex overflow-x-auto gap-4 md:gap-6 snap-x no-scrollbar px-6 scroll-smooth">
             {children}
           </div>
         </div>
@@ -73,18 +73,18 @@ export function AudioPlayer() {
   const [isFullscreen, setIsFullscreen] = useState(false)
   
   const [searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<Song[]>([])
+  const[searchResults, setSearchResults] = useState<Song[]>([])
   const [searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
-  const [isSearching, setIsSearching] = useState(false)
+  const[isSearching, setIsSearching] = useState(false)
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
   const[searchHistory, setSearchHistory] = useState<string[]>([])
-  const [searchFocused, setSearchFocused] = useState(false)
+  const[searchFocused, setSearchFocused] = useState(false)
   
   const [queue, setQueue] = useState<Song[]>([])
   const[currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const[currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const[duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
   const[isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
@@ -92,7 +92,7 @@ export function AudioPlayer() {
   const [isLoading, setIsLoading] = useState(false)
   const[loadError, setLoadError] = useState<string | null>(null)
   
-  const [playbackRate, setPlaybackRate] = useState(1)
+  const[playbackRate, setPlaybackRate] = useState(1)
   const [preservesPitch, setPreservesPitch] = useState(true)
 
   const [lyrics, setLyrics] = useState<LyricsData | null>(null)
@@ -103,19 +103,19 @@ export function AudioPlayer() {
   const[isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'lyrics' | 'queue'>('player')
 
-  const [exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs:[], albums:[]})
-  const [isExploreLoading, setIsExploreLoading] = useState(true)
+  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs:[], albums:[]})
+  const[isExploreLoading, setIsExploreLoading] = useState(true)
   const [exploreError, setExploreError] = useState(false)
   
   const[currentArtistData, setCurrentArtistData] = useState<any>(null)
   const[isArtistLoading, setIsArtistLoading] = useState(false)
-  const[currentAlbumData, setCurrentAlbumData] = useState<any>(null)
+  const [currentAlbumData, setCurrentAlbumData] = useState<any>(null)
   const [isAlbumLoading, setIsAlbumLoading] = useState(false)
   const[currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
 
   // Dialog States
   const[showAboutDialog, setShowAboutDialog] = useState(false)
-  const[showCreditsDialog, setShowCreditsDialog] = useState(false)
+  const [showCreditsDialog, setShowCreditsDialog] = useState(false)
   const[showTosDialog, setShowTosDialog] = useState(false)
   const [showCopyrightDialog, setShowCopyrightDialog] = useState(false)
   const[showAccountSettings, setShowAccountSettings] = useState(false) 
@@ -140,13 +140,13 @@ export function AudioPlayer() {
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isSignUp, setIsSignUp] = useState(false)
+  const[isSignUp, setIsSignUp] = useState(false)
   const[authError, setAuthError] = useState("")
-  const [displayNameInput, setDisplayNameInput] = useState("")
+  const[displayNameInput, setDisplayNameInput] = useState("")
   
   // Data States
   const[likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
-  const [savedSongs, setSavedSongs] = useState<Song[]>([])
+  const[savedSongs, setSavedSongs] = useState<Song[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
 
   const audioRef = useRef<HTMLAudioElement>(null)
@@ -250,7 +250,7 @@ export function AudioPlayer() {
       // @ts-ignore
       audioRef.current.webkitPreservesPitch = preservesPitch
     }
-  }, [playbackRate, preservesPitch])
+  },[playbackRate, preservesPitch])
 
   useEffect(() => {
     applyAudioEffects()
@@ -316,7 +316,7 @@ export function AudioPlayer() {
           const localPlaylists = JSON.parse(localStorage.getItem('ganvo_playlists') || '[]')
           
           const combinedSaved =[...(data.savedSongs || []), ...localSaved].filter((v,i,a) => a.findIndex(t => (t.videoId === v.videoId)) === i)
-          const combinedPlaylists = [...(data.playlists || []), ...localPlaylists].filter((v,i,a) => a.findIndex(t => (t.id === v.id)) === i)
+          const combinedPlaylists =[...(data.playlists || []), ...localPlaylists].filter((v,i,a) => a.findIndex(t => (t.id === v.id)) === i)
           
           setSavedSongs(combinedSaved)
           setLikedSongs(new Set(combinedSaved.map((s: Song) => s.videoId)))
@@ -429,7 +429,7 @@ export function AudioPlayer() {
     const updatedPlaylists = playlists.map(p => {
       if (p.id === playlistId) {
         if (!p.songs.find(s => s.videoId === song.videoId)) {
-          return { ...p, songs: [...p.songs, song] }
+          return { ...p, songs:[...p.songs, song] }
         }
       }
       return p
@@ -522,7 +522,7 @@ export function AudioPlayer() {
     }
   }, [searchQuery])
 
-  const sortedSearchResults = [...searchResults].sort((a, b) => {
+  const sortedSearchResults =[...searchResults].sort((a, b) => {
     if (searchSort === 'az') return a.title.localeCompare(b.title)
     if (searchSort === 'za') return b.title.localeCompare(a.title)
     return 0
@@ -614,7 +614,7 @@ export function AudioPlayer() {
     }
 
     loadLyrics()
-  }, [currentSong?.videoId, lyricsProvider])
+  },[currentSong?.videoId, lyricsProvider])
 
   // Auto-play when audio URL is ready
   useEffect(() => {
@@ -649,7 +649,7 @@ export function AudioPlayer() {
         }, 50)
       }
     }
-  }, [currentTime, lyrics, currentLyricIndex])
+  },[currentTime, lyrics, currentLyricIndex])
 
   const handleTimeUpdate = () => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime) }
   const handleLoadedMetadata = () => { if (audioRef.current) setDuration(audioRef.current.duration) }
@@ -794,9 +794,9 @@ export function AudioPlayer() {
         </div>
       )}
 
+      {/* Notice no crossOrigin="anonymous" on audio ref! It's removed so CORS won't block pure streams */}
       <audio
         ref={audioRef}
-        crossOrigin="anonymous"
         onTimeUpdate={handleTimeUpdate}
         onLoadedMetadata={handleLoadedMetadata}
         onLoadedData={handleLoadedData}
@@ -808,8 +808,8 @@ export function AudioPlayer() {
       {/* Header - Expressive M3 style */}
       <header className="elevation-1 z-40 flex h-16 flex-shrink-0 items-center justify-between px-3 md:px-6 transition-all duration-500 ease-out relative bg-background/90 backdrop-blur-xl border-b border-border/40 gap-2">
         <div className={cn(
-          "flex items-center shrink-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] origin-left overflow-hidden", 
-          searchFocused ? "w-0 opacity-0 mr-0" : "w-[120px] opacity-100 mr-2"
+          "flex items-center shrink-0 transition-all duration-400 ease-out origin-left overflow-hidden", 
+          searchFocused ? "w-0 opacity-0 mr-0 md:w-[120px] md:opacity-100 md:mr-2" : "w-[40px] opacity-100 mr-1 md:w-[120px] md:mr-2 gap-3"
         )}>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 shadow-md">
             <Music2 className="h-5 w-5 text-primary-foreground fill-current" />
@@ -821,7 +821,7 @@ export function AudioPlayer() {
         </div>
 
         {/* Search bar */}
-        <div ref={searchContainerRef} className="relative flex-1 max-w-2xl mx-auto w-full transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)]">
+        <div ref={searchContainerRef} className="relative flex-1 max-w-2xl mx-auto w-full transition-all duration-500 ease-out">
           <div className="relative flex items-center">
             <Search className="absolute left-4 h-5 w-5 text-muted-foreground transition-colors" />
             <Input
@@ -873,7 +873,7 @@ export function AudioPlayer() {
                     </div>
                   ) : (
                     <div className="animate-in fade-in duration-500">
-                      <div className="flex items-center justify-between p-3 mb-2 border-b bg-muted/20 rounded-xl">
+                      <div className="flex items-center justify-between p-3 mb-2 border-b bg-muted/20 rounded-xl" onMouseDown={(e) => e.preventDefault()}>
                         <span className="text-xs font-bold text-muted-foreground ml-2">RESULTS</span>
                         <Select value={searchSort} onValueChange={(v: any) => setSearchSort(v)}>
                           <SelectTrigger className="h-7 text-xs w-[120px] rounded-full border-none bg-muted font-bold text-foreground outline-none focus:ring-0">
@@ -912,10 +912,7 @@ export function AudioPlayer() {
         </div>
 
         {/* Right side buttons */}
-        <div className={cn(
-          "flex items-center shrink-0 transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] overflow-hidden",
-          searchFocused ? "w-0 opacity-0 ml-0 md:w-[150px] md:opacity-100 md:gap-1 md:ml-2" : "w-[100px] md:w-[150px] opacity-100 gap-1 md:gap-2 ml-2"
-        )}>
+        <div className="flex items-center gap-1 md:gap-2 shrink-0">
           <Button variant="ghost" size="icon" onClick={toggleFullscreen} className="hidden sm:flex h-10 w-10 rounded-full text-foreground transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:bg-muted hover:scale-110 active:scale-90 outline-none focus:outline-none focus-visible:outline-none">
             {isFullscreen ? <Minimize className="h-5 w-5 fill-current" /> : <Maximize className="h-5 w-5 fill-current" />}
           </Button>
@@ -958,9 +955,6 @@ export function AudioPlayer() {
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowAboutDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
                 <Info className="h-4 w-4 text-muted-foreground text-current" /> About Ganvo
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowCreditsDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
-                <Heart className="h-4 w-4 text-muted-foreground text-current" /> Credits & APIs
               </DropdownMenuItem>
               {user && (
                 <>
@@ -1299,7 +1293,7 @@ export function AudioPlayer() {
                   )}
                 </div>
              </div>
-          ) :['player', 'lyrics', 'queue', 'library'].includes(activeTab) ? (
+          ) : ['player', 'lyrics', 'queue', 'library'].includes(activeTab) ? (
             <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 md:px-8 relative">
               {loadError && (
                 <div className="absolute top-4 bg-destructive/90 text-destructive-foreground px-4 py-2 rounded-xl font-bold text-sm shadow-lg z-50 animate-in fade-in slide-in-from-top-4 text-center mx-4">
@@ -1350,7 +1344,7 @@ export function AudioPlayer() {
                       max={duration || 100}
                       step={0.1}
                       onValueChange={handleSeek}
-                      className="mb-3 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:transition-transform [&_[data-slot=thumb]]:duration-300 [&_[data-slot=thumb]]:ease-out [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=thumb]]:border-2[&_[data-slot=thumb]]:hover:scale-150 [&_[data-slot=track]]:h-2 [&_[data-slot=track]]:bg-muted"
+                      className="mb-3 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:transition-transform [&_[data-slot=thumb]]:duration-300 [&_[data-slot=thumb]]:ease-out [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=thumb]]:border-2 [&_[data-slot=thumb]]:hover:scale-150 [&_[data-slot=track]]:h-2 [&_[data-slot=track]]:bg-muted"
                     />
                     <div className="flex justify-between text-xs font-bold tabular-nums text-muted-foreground/70">
                       <span>{formatTime(currentTime)}</span>
@@ -1583,8 +1577,8 @@ export function AudioPlayer() {
       />
       <div 
         className={cn(
-          "fixed inset-x-0 bottom-0 z-[200] bg-background flex flex-col transition-all duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] lg:hidden rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.3)]",
-          isMobilePlayerExpanded ? "translate-y-0 h-dvh" : "translate-y-full h-dvh"
+          "fixed inset-x-0 bottom-0 z-[200] bg-background flex flex-col transition-transform duration-400 ease-out lg:hidden rounded-t-[2.5rem] shadow-[0_-10px_40px_rgba(0,0,0,0.3)]",
+          isMobilePlayerExpanded ? "translate-y-0 h-[100dvh]" : "translate-y-[100%] h-[100dvh]"
         )}
       >
         {dynamicTheme && playerBgStyle === 'Gradient' && dominantColor && (
@@ -1634,7 +1628,7 @@ export function AudioPlayer() {
           </DropdownMenu>
         </div>
 
-        <div className="flex-1 overflow-y-auto min-h-0 relative px-6 pb-6 pt-4 flex flex-col z-10">
+        <div className="flex-1 overflow-y-auto min-h-0 relative px-6 pb-6 flex flex-col z-10">
           {mobilePlayerTab === 'player' && currentSong && (
             <div className="flex flex-col items-center min-h-full py-4 animate-in fade-in zoom-in-95 duration-500 relative">
               {loadError && (
@@ -1666,7 +1660,7 @@ export function AudioPlayer() {
               </div>
 
               <div className="w-full mb-8">
-                <Slider value={[currentTime]} max={duration || 100} step={0.1} onValueChange={handleSeek} className="mb-4 [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-5[&_[data-slot=thumb]]:w-5 [&_[data-slot=track]]:h-2" />
+                <Slider value={[currentTime]} max={duration || 100} step={0.1} onValueChange={handleSeek} className="mb-4 [&_[data-slot=range]]:bg-primary [&_[data-slot=thumb]]:h-5[&_[data-slot=thumb]]:w-5[&_[data-slot=track]]:h-2" />
                 <div className="flex justify-between text-sm font-bold text-muted-foreground">
                   <span>{formatTime(currentTime)}</span>
                   <span>{formatTime(duration)}</span>
@@ -1848,7 +1842,7 @@ export function AudioPlayer() {
                     value={[thumbnailRadius]} 
                     min={0} max={64} step={2} 
                     onValueChange={(val) => setThumbnailRadius(val[0])} 
-                    className="[&_[data-slot=range]]:bg-blue-500[&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
+                    className="[&_[data-slot=range]]:bg-blue-500 [&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
                   />
                </div>
                
