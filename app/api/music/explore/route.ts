@@ -26,12 +26,25 @@ export async function GET() {
   try {
     await ensureInitialized()
     
-    // Fetch multiple categories concurrently for a rich Explore page
-    const[artistsRes, songsRes, albumsRes] = await Promise.all([
+    // Fetch categories and specific creator top picks concurrently
+    const [artistsRes, songsRes, albumsRes] = await Promise.all([
       ytmusic.searchArtists("Top Global Artists"),
       ytmusic.searchSongs("Top Global Hits"),
       ytmusic.searchAlbums("Top Albums 2024")
     ])
+    
+    const picksIds =['M_DiTjNBiOY', 'nmbiBVPe5bY', 'p9OtySpRRL8', 'iHsObIWkM-s', '_2qJy5r-WAY', 'M2dgm4xK3IY', 'DntZ3-yCaFs', '-KrC-gqKTMg']
+    const picksData = await Promise.all(picksIds.map(id => ytmusic.getSong(id).catch(() => null)))
+    
+    const creatorsPicks = picksData.filter(Boolean).map(s => ({
+      videoId: s.videoId,
+      title: s.name,
+      artist: s.artist?.name || 'Unknown Artist',
+      artistId: s.artist?.artistId || null,
+      album: s.album?.name || '',
+      duration: s.duration || 0,
+      thumbnail: formatThumb(s.thumbnails)
+    }))
     
     const artists = artistsRes.slice(0, 15).map(a => ({
       artistId: a.artistId,
@@ -51,14 +64,14 @@ export async function GET() {
     }))
 
     const albums = albumsRes.slice(0, 15).map(a => ({
-      albumId: a.albumId, // Fixed mapping to pass correct albumId
+      albumId: a.albumId || a.id,
       title: a.name,
       artist: a.artist?.name || 'Unknown Artist',
       year: a.year || '',
       thumbnail: formatThumb(a.thumbnails)
     }))
 
-    return NextResponse.json({ artists, songs, albums })
+    return NextResponse.json({ creatorsPicks, artists, songs, albums })
   } catch (error) {
     return NextResponse.json({ error: 'Failed to fetch explore data' }, { status: 500 })
   }
