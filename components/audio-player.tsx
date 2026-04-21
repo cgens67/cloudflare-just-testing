@@ -69,27 +69,27 @@ const ScrollableRow = ({ children, title, icon: Icon }: { children: React.ReactN
 
 export function AudioPlayer() {
   const [isDark, setIsDark] = useState(false)
-  const [isFullscreen, setIsFullscreen] = useState(false)
+  const[isFullscreen, setIsFullscreen] = useState(false)
   
   const[searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
   const[searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
-  const [isSearching, setIsSearching] = useState(false)
+  const[isSearching, setIsSearching] = useState(false)
   const[isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [searchHistory, setSearchHistory] = useState<string[]>([])
-  const [searchFocused, setSearchFocused] = useState(false)
+  const[searchFocused, setSearchFocused] = useState(false)
   
   const[queue, setQueue] = useState<Song[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const[duration, setDuration] = useState(0)
   const[volume, setVolume] = useState(80)
   const [isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
   const[repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const[isLoading, setIsLoading] = useState(false)
-  const [loadError, setLoadError] = useState<string | null>(null)
+  const[loadError, setLoadError] = useState<string | null>(null)
   
   const [playbackRate, setPlaybackRate] = useState(1)
   const [preservesPitch, setPreservesPitch] = useState(false)
@@ -101,14 +101,14 @@ export function AudioPlayer() {
   const[isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'lyrics' | 'queue'>('player')
 
-  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs: [], albums:[]})
+  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks:[], artists:[], songs: [], albums:[]})
   const[isExploreLoading, setIsExploreLoading] = useState(true)
   const [exploreError, setExploreError] = useState(false)
   
-  const [currentArtistData, setCurrentArtistData] = useState<any>(null)
+  const[currentArtistData, setCurrentArtistData] = useState<any>(null)
   const[isArtistLoading, setIsArtistLoading] = useState(false)
   const [currentAlbumData, setCurrentAlbumData] = useState<any>(null)
-  const [isAlbumLoading, setIsAlbumLoading] = useState(false)
+  const[isAlbumLoading, setIsAlbumLoading] = useState(false)
   const[currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
 
   const [showAboutDialog, setShowAboutDialog] = useState(false)
@@ -142,7 +142,7 @@ export function AudioPlayer() {
   const [playlists, setPlaylists] = useState<Playlist[]>([])
 
   // YT IFrame Engine Refs
-  const ytContainerRef = useRef<HTMLDivElement>(null)
+  const ytParentRef = useRef<HTMLDivElement>(null)
   const ytPlayerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const handleEndedRef = useRef<() => void>(() => {})
@@ -161,32 +161,43 @@ export function AudioPlayer() {
   }
 
   // Optimize Performance / Avoid Chromium Aw Snap Browser Crash
-  // Dramatically drop extracted color sample area bounding boxes 16x16.
+  // Safely sample images while ensuring dead references are flushed
   useEffect(() => {
+    let isActive = true;
     if (!currentSong?.thumbnail || playerBgStyle === 'Theme') {
       setDominantColor(null)
       return
     }
     const img = new Image()
     img.crossOrigin = "Anonymous"
-    img.src = currentSong.thumbnail
+    
     img.onload = () => {
+      if (!isActive) return;
       const canvas = document.createElement('canvas')
-      // Restricted to 64x64 prevents catastrophic OOM Chromium crashes during intense scraping
       canvas.width = 64
       canvas.height = 64
-      const ctx = canvas.getContext('2d')
+      const ctx = canvas.getContext('2d', { willReadFrequently: true })
       if (!ctx) return
       ctx.drawImage(img, 0, 0, 64, 64)
       try {
         const data = ctx.getImageData(0, 0, 64, 64).data
         let r = 0, g = 0, b = 0
+        let count = 0;
         for (let i = 0; i < data.length; i += 16) {
           r += data[i]; g += data[i+1]; b += data[i+2];
+          count++;
         }
-        const pixels = Math.floor(data.length / 16)
-        setDominantColor(`rgba(${~~(r/pixels)}, ${~~(g/pixels)}, ${~~(b/pixels)}, 0.45)`)
-      } catch(e) { setDominantColor(null) }
+        if (count > 0) {
+           setDominantColor(`rgba(${~~(r/count)}, ${~~(g/count)}, ${~~(b/count)}, 0.45)`)
+        }
+      } catch(e) { if (isActive) setDominantColor(null) }
+    }
+
+    img.src = currentSong.thumbnail;
+
+    return () => { 
+      isActive = false; 
+      img.onload = null; 
     }
   },[currentSong?.thumbnail, playerBgStyle])
 
@@ -498,8 +509,14 @@ export function AudioPlayer() {
     let isMounted = true;
 
     const initPlayer = () => {
-      if (!ytContainerRef.current || !isMounted) return;
-      ytPlayerRef.current = new (window as any).YT.Player(ytContainerRef.current, {
+      if (!ytParentRef.current || !isMounted) return;
+      
+      // Isolate React's virtual DOM from Google API overwriting the Div
+      const playerDiv = document.createElement('div');
+      ytParentRef.current.innerHTML = '';
+      ytParentRef.current.appendChild(playerDiv);
+
+      ytPlayerRef.current = new (window as any).YT.Player(playerDiv, {
         height: '1', width: '1',
         videoId: currentSong?.videoId || '', // Explicit payload bypass origin
         playerVars: { playsinline: 1, controls: 0, disablekb: 1 },
@@ -528,7 +545,8 @@ export function AudioPlayer() {
           },
           onError: () => {
             setIsLoading(false); setIsPlaying(false);
-            setLoadError("IFrame Execution Exception (Network restricted or video permanently removed)")
+            setLoadError("Audio track unavailable in your region. Trying next...");
+            setTimeout(() => playNext(), 3000);
           }
         }
       });
@@ -558,6 +576,7 @@ export function AudioPlayer() {
          ytPlayerRef.current.destroy();
          ytPlayerRef.current = null;
       }
+      if (ytParentRef.current) ytParentRef.current.innerHTML = '';
     };
   },[]);
 
@@ -586,6 +605,17 @@ export function AudioPlayer() {
       ytPlayerRef.current.playVideo();
     }
   }, [currentSong?.videoId]);
+  
+  // Safely intercept and stop the video when the queue is entirely destroyed
+  useEffect(() => {
+    if (!currentSong) {
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.stopVideo === 'function') {
+         ytPlayerRef.current.stopVideo();
+      }
+      setIsPlaying(false);
+      setCurrentTime(0);
+    }
+  }, [currentSong]);
 
   useEffect(() => {
     if (ytPlayerRef.current && ytPlayerRef.current.setVolume) ytPlayerRef.current.setVolume(volume);
@@ -725,25 +755,36 @@ export function AudioPlayer() {
     <div className="flex h-screen flex-col overflow-hidden font-sans relative z-0 bg-background transition-colors duration-1000">
       
       <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
-        <div ref={ytContainerRef}></div>
+        <div ref={ytParentRef}></div>
       </div>
 
-      {dynamicTheme && playerBgStyle === 'Gradient' && dominantColor && (
+      {dynamicTheme && playerBgStyle === 'Gradient' && (
         <>
           <div 
             className="absolute inset-0 z-[-2] transition-colors duration-1000 ease-in-out" 
-            style={{ backgroundColor: dominantColor }} 
+            style={{ backgroundColor: dominantColor || 'transparent' }} 
           />
-          <div className="absolute inset-0 z-[-1] bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none" />
+          <div 
+            className={cn(
+              "absolute inset-0 z-[-1] bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none transition-opacity duration-1000 ease-in-out",
+              dominantColor ? "opacity-100" : "opacity-0"
+            )} 
+          />
         </>
       )}
 
-      {dynamicTheme && playerBgStyle === 'Blur' && currentSong && (
-        <div className="absolute inset-0 z-[-2] overflow-hidden pointer-events-none bg-background">
+      {dynamicTheme && playerBgStyle === 'Blur' && (
+        <div className={cn(
+          "absolute inset-0 z-[-2] overflow-hidden pointer-events-none bg-background transition-opacity duration-1000 ease-in-out",
+          currentSong ? "opacity-100" : "opacity-0"
+        )}>
           <img 
-            key={currentSong.videoId}
-            src={currentSong.thumbnail} 
-            className="w-full h-full object-cover blur-3xl scale-[1.2] opacity-30 animate-in fade-in duration-1000 will-change-transform" 
+            key={currentSong?.videoId || 'empty'}
+            src={currentSong?.thumbnail || ''} 
+            className={cn(
+              "w-full h-full object-cover blur-2xl scale-[1.2] opacity-30 will-change-transform transform-gpu",
+              currentSong ? "animate-in fade-in duration-1000" : ""
+            )} 
           />
         </div>
       )}
@@ -1470,7 +1511,7 @@ export function AudioPlayer() {
             <Button onClick={(e) => { e.stopPropagation(); togglePlay() }} disabled={isLoading} className={cn("h-14 w-14 flex flex-shrink-0 items-center justify-center rounded-[1.5rem] shadow-lg transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)] active:scale-90 outline-none focus:outline-none", isPlaying ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
               {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-current" /> : isPlaying ? <Pause className="h-6 w-6 fill-current text-current" /> : <Play className="h-6 w-6 fill-current text-current translate-x-[1px]" />}
             </Button>
-            <Button onClick={(e) => { e.stopPropagation(); setQueue([]); setCurrentIndex(0); if(ytPlayerRef.current?.destroy) ytPlayerRef.current.destroy() }} variant="ghost" size="icon" className="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive mr-1 outline-none focus:outline-none">
+            <Button onClick={(e) => { e.stopPropagation(); setQueue([]); setCurrentIndex(0); }} variant="ghost" size="icon" className="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive mr-1 outline-none focus:outline-none">
               <X className="h-5 w-5 text-current" />
             </Button>
           </div>
@@ -1491,16 +1532,29 @@ export function AudioPlayer() {
           isMobilePlayerExpanded ? "translate-y-0 h-[100dvh]" : "translate-y-[100%] h-[100dvh]"
         )}
       >
-        {dynamicTheme && playerBgStyle === 'Gradient' && dominantColor && (
+        {dynamicTheme && playerBgStyle === 'Gradient' && (
           <>
-            <div className="absolute inset-0 z-[-2] transition-colors duration-1000 ease-in-out rounded-t-[2.5rem]" style={{ backgroundColor: dominantColor }} />
-            <div className="absolute inset-0 z-[-1] bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none rounded-t-[2.5rem]" />
+            <div className="absolute inset-0 z-[-2] transition-colors duration-1000 ease-in-out rounded-t-[2.5rem]" style={{ backgroundColor: dominantColor || 'transparent' }} />
+            <div className={cn(
+              "absolute inset-0 z-[-1] bg-gradient-to-b from-transparent via-background/60 to-background pointer-events-none rounded-t-[2.5rem] transition-opacity duration-1000 ease-in-out",
+              dominantColor ? "opacity-100" : "opacity-0"
+            )} />
           </>
         )}
         
-        {dynamicTheme && playerBgStyle === 'Blur' && currentSong && (
-          <div className="absolute inset-0 z-[-2] overflow-hidden pointer-events-none bg-background rounded-t-[2.5rem]">
-            <img key={currentSong.videoId} src={currentSong.thumbnail} className="w-full h-full object-cover blur-3xl scale-[1.2] opacity-30 animate-in fade-in duration-1000 will-change-transform" />
+        {dynamicTheme && playerBgStyle === 'Blur' && (
+          <div className={cn(
+            "absolute inset-0 z-[-2] overflow-hidden pointer-events-none bg-background rounded-t-[2.5rem] transition-opacity duration-1000 ease-in-out",
+            currentSong ? "opacity-100" : "opacity-0"
+          )}>
+            <img 
+              key={currentSong?.videoId || 'empty'} 
+              src={currentSong?.thumbnail || ''} 
+              className={cn(
+                "w-full h-full object-cover blur-2xl scale-[1.2] opacity-30 will-change-transform transform-gpu",
+                currentSong ? "animate-in fade-in duration-1000" : ""
+              )} 
+            />
           </div>
         )}
 
@@ -1599,7 +1653,7 @@ export function AudioPlayer() {
                   {lyrics?.syncedLyrics ? (
                     <div className="space-y-6 py-10 mt-4">
                       {lyrics.syncedLyrics.map((line, index) => (
-                        <p key={index} onClick={() => { if (audioRef.current) audioRef.current.currentTime = line.time }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
+                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
                           {line.text}
                         </p>
                       ))}
