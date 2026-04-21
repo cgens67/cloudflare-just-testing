@@ -74,19 +74,19 @@ export function AudioPlayer() {
   
   const[searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
-  const [searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
+  const[searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
   const [isSearching, setIsSearching] = useState(false)
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const[isSearchExpanded, setIsSearchExpanded] = useState(false)
   const [searchHistory, setSearchHistory] = useState<string[]>([])
   const [searchFocused, setSearchFocused] = useState(false)
   
-  const [queue, setQueue] = useState<Song[]>([])
+  const[queue, setQueue] = useState<Song[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
-  const[duration, setDuration] = useState(0)
+  const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
-  const[isMuted, setIsMuted] = useState(false)
+  const [isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const [isLoading, setIsLoading] = useState(false)
@@ -99,10 +99,10 @@ export function AudioPlayer() {
   const [currentLyricIndex, setCurrentLyricIndex] = useState(-1)
 
   const [activeTab, setActiveTab] = useState<'player' | 'explore' | 'queue' | 'lyrics' | 'library' | 'artist' | 'album' | 'playlistView'>('explore')
-  const [isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
+  const[isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'lyrics' | 'queue'>('player')
 
-  const [exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs: [], albums:[]})
+  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs: [], albums:[]})
   const[isExploreLoading, setIsExploreLoading] = useState(true)
   const [exploreError, setExploreError] = useState(false)
   
@@ -112,36 +112,36 @@ export function AudioPlayer() {
   const [isAlbumLoading, setIsAlbumLoading] = useState(false)
   const[currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
 
-  const[showAboutDialog, setShowAboutDialog] = useState(false)
+  const [showAboutDialog, setShowAboutDialog] = useState(false)
   const [showCreditsDialog, setShowCreditsDialog] = useState(false)
-  const [showAccountSettings, setShowAccountSettings] = useState(false) 
-  const[showPlayerSettings, setShowPlayerSettings] = useState(false) 
+  const[showAccountSettings, setShowAccountSettings] = useState(false) 
+  const [showPlayerSettings, setShowPlayerSettings] = useState(false) 
   const [showEffectsDialog, setShowEffectsDialog] = useState(false)
-  const [showPlaylistDialog, setShowPlaylistDialog] = useState(false)
-  const[newPlaylistName, setNewPlaylistName] = useState("")
+  const[showPlaylistDialog, setShowPlaylistDialog] = useState(false)
+  const [newPlaylistName, setNewPlaylistName] = useState("")
   
   const [dynamicTheme, setDynamicTheme] = useState(true)
-  const [playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Gradient')
-  const [thumbnailRadius, setThumbnailRadius] = useState(32)
-  const[dominantColor, setDominantColor] = useState<string | null>(null)
+  const[playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Gradient')
+  const[thumbnailRadius, setThumbnailRadius] = useState(32)
+  const [dominantColor, setDominantColor] = useState<string | null>(null)
   const [lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
   const [lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
   const [audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
-  const[autoPlaySimilar, setAutoPlaySimilar] = useState(false)
+  const [autoPlaySimilar, setAutoPlaySimilar] = useState(false)
   
-  const [showAuthDialog, setShowAuthDialog] = useState(false)
+  const[showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const[password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
   const [authError, setAuthError] = useState("")
-  const[displayNameInput, setDisplayNameInput] = useState("")
+  const [displayNameInput, setDisplayNameInput] = useState("")
   
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
-  const [savedSongs, setSavedSongs] = useState<Song[]>([])
+  const[savedSongs, setSavedSongs] = useState<Song[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
 
-  // FRIEND'S LOGIC NATIVE STREAM INJECTION - YT IFrame Engine Refs
+  // YT IFrame Engine Refs
   const ytContainerRef = useRef<HTMLDivElement>(null)
   const ytPlayerRef = useRef<any>(null)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
@@ -160,6 +160,7 @@ export function AudioPlayer() {
     return "text-xl md:text-2xl"
   }
 
+  // FIX: WebGL Crash & Memory Leaks via safe scaled Canvas pixel processing
   useEffect(() => {
     if (!currentSong?.thumbnail || playerBgStyle === 'Theme') {
       setDominantColor(null)
@@ -170,18 +171,20 @@ export function AudioPlayer() {
     img.src = currentSong.thumbnail
     img.onload = () => {
       const canvas = document.createElement('canvas')
-      canvas.width = img.width
-      canvas.height = img.height
+      // Drastically reduce sampled resolution dimension limits down 
+      // preventing heavy Memory-Leak/GPU WebGL Chromium "Aw snap" crashes
+      canvas.width = 64
+      canvas.height = 64
       const ctx = canvas.getContext('2d')
       if (!ctx) return
-      ctx.drawImage(img, 0, 0)
+      ctx.drawImage(img, 0, 0, 64, 64)
       try {
-        const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data
+        const data = ctx.getImageData(0, 0, 64, 64).data
         let r = 0, g = 0, b = 0
         for (let i = 0; i < data.length; i += 16) {
           r += data[i]; g += data[i+1]; b += data[i+2];
         }
-        const pixels = data.length / 16
+        const pixels = Math.floor(data.length / 16)
         setDominantColor(`rgba(${~~(r/pixels)}, ${~~(g/pixels)}, ${~~(b/pixels)}, 0.45)`)
       } catch(e) { setDominantColor(null) }
     }
@@ -425,7 +428,7 @@ export function AudioPlayer() {
     }, 300)
 
     return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current) }
-  }, [searchQuery])
+  },[searchQuery])
 
   const sortedSearchResults =[...searchResults].sort((a, b) => {
     if (searchSort === 'az') return a.title.localeCompare(b.title)
@@ -495,7 +498,7 @@ export function AudioPlayer() {
     const initPlayer = () => {
       if (!ytContainerRef.current || !isMounted) return;
       
-      // Inject iframe perfectly matching the architecture from the provided functioning solution!
+      // Inject iframe matching logic
       ytPlayerRef.current = new (window as any).YT.Player(ytContainerRef.current, {
         height: '1', width: '1',
         playerVars: { playsinline: 1, controls: 0, disablekb: 1 },
@@ -562,9 +565,9 @@ export function AudioPlayer() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isPlaying]);
+  },[isPlaying]);
 
-  // Inject currently selected Queue Track into YT IFrame flawlessly without routing CORS!
+  // Inject currently selected Queue Track into YT IFrame flawlessly
   useEffect(() => {
     if (currentSong && ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
       setIsLoading(true);
@@ -732,7 +735,7 @@ export function AudioPlayer() {
           <img 
             key={currentSong.videoId}
             src={currentSong.thumbnail} 
-            className="w-full h-full object-cover blur-[100px] opacity-40 animate-in fade-in duration-1000" 
+            className="w-full h-full object-cover blur-3xl scale-[1.2] opacity-30 animate-in fade-in duration-1000 will-change-transform" 
           />
         </div>
       )}
@@ -740,13 +743,13 @@ export function AudioPlayer() {
       {/* Header - Expressive M3 style */}
       <header className="elevation-1 z-40 flex h-16 flex-shrink-0 items-center justify-between px-3 md:px-6 transition-all duration-500 ease-out relative bg-background/90 backdrop-blur-xl border-b border-border/40 gap-2">
         <div className={cn(
-          "flex items-center shrink-0 transition-all duration-500 ease-out origin-left overflow-hidden", 
-          searchFocused ? "w-0 opacity-0 mr-0 md:w-[120px] md:opacity-100 md:mr-2" : "w-[40px] opacity-100 mr-1 md:w-[120px] md:mr-2 gap-3"
+          "items-center shrink-0 transition-all duration-500 ease-out origin-left overflow-hidden", 
+          searchFocused ? "hidden md:flex md:w-auto md:min-w-[140px] md:mr-4 gap-3" : "flex w-[40px] md:w-auto md:min-w-[140px] mr-1 md:mr-4 gap-3"
         )}>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 shadow-md">
             <Music2 className="h-5 w-5 text-primary-foreground fill-current" />
           </div>
-          <div className="hidden sm:flex items-baseline gap-1">
+          <div className="hidden sm:flex items-baseline gap-1 whitespace-nowrap">
             <span className="text-xl font-normal text-muted-foreground tracking-tight">Ganvo</span>
             <span className="text-xl font-bold tracking-tight text-foreground">Music</span>
           </div>
@@ -1299,7 +1302,7 @@ export function AudioPlayer() {
                   <div className="flex w-full items-center justify-between gap-3 px-2">
                     <div className="flex flex-1 items-center gap-3 rounded-2xl bg-muted/60 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:bg-muted/80">
                       <Button variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 flex-shrink-0 rounded-full p-0 transition-transform duration-300 hover:scale-110 active:scale-90 flex items-center justify-center text-foreground outline-none focus:outline-none"><VolumeIcon className="h-5 w-5 text-current" /></Button>
-                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=track]]:h-1.5 [&_[data-slot=track]]:bg-foreground/10" />
+                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4[&_[data-slot=track]]:h-1.5 [&_[data-slot=track]]:bg-foreground/10" />
                       <span className="w-8 flex-shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{isMuted ? 0 : volume}%</span>
                     </div>
                   </div>
@@ -1351,7 +1354,7 @@ export function AudioPlayer() {
                 <p className="text-sm text-muted-foreground mt-2">Check the main view on the left.</p>
               </div>
             ) : activeTab === 'lyrics' ? (
-              <div className="h-full flex flex-col relative">
+              <div className="h-full flex flex-col relative" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 5%, black 90%, transparent 100%)' }}>
                 <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto no-scrollbar scroll-smooth lyrics-scroll-container pb-32">
                   {lyrics?.syncedLyrics ? (
                     <div className="space-y-5 p-6 mt-4">
@@ -1437,7 +1440,7 @@ export function AudioPlayer() {
                   </div>
                </div>
             ) : (
-              <div className="p-3 space-y-2 pb-32 animate-in slide-in-from-bottom-8 duration-700 ease-out">
+              <div className="p-3 space-y-2 pb-32 animate-in slide-in-from-bottom-8 duration-700 ease-out overflow-y-auto" style={{ maskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)' }}>
                 {queue.length > 0 ? (
                   queue.map((song, index) => (
                     <div key={`${song.videoId}-${index}`} className={cn("group flex items-center gap-3 rounded-2xl p-2 transition-all duration-300 hover:bg-muted/80", index === currentIndex ? "bg-primary/5 shadow-sm border border-primary/10 scale-[1.02]" : "border border-transparent")}>
@@ -1528,7 +1531,7 @@ export function AudioPlayer() {
             <img 
               key={currentSong.videoId}
               src={currentSong.thumbnail} 
-              className="w-full h-full object-cover blur-[100px] opacity-40 animate-in fade-in duration-1000" 
+              className="w-full h-full object-cover blur-3xl scale-[1.2] opacity-30 animate-in fade-in duration-1000 will-change-transform" 
             />
           </div>
         )}
@@ -1623,7 +1626,7 @@ export function AudioPlayer() {
           )}
 
           {mobilePlayerTab === 'lyrics' && (
-             <div className="h-full flex flex-col relative">
+             <div className="h-full flex flex-col relative" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
                 <div ref={lyricsContainerRefMobile} className="flex-1 overflow-y-auto no-scrollbar scroll-smooth lyrics-scroll-container pb-32">
                   {lyrics?.syncedLyrics ? (
                     <div className="space-y-6 py-10 mt-4">
@@ -1645,7 +1648,7 @@ export function AudioPlayer() {
           )}
 
           {mobilePlayerTab === 'queue' && (
-             <div className="h-full overflow-y-auto pb-32 pt-4">
+             <div className="h-full overflow-y-auto pb-32 pt-4 no-scrollbar" style={{ maskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)' }}>
                 <h3 className="font-extrabold text-2xl mb-6 flex items-center gap-3 text-foreground"><ListMusic className="text-primary"/> Up Next</h3>
                 <div className="space-y-3">
                   {queue.map((song, index) => (
