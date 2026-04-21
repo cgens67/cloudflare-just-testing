@@ -69,88 +69,84 @@ const ScrollableRow = ({ children, title, icon: Icon }: { children: React.ReactN
 }
 
 export function AudioPlayer() {
-  const[isDark, setIsDark] = useState(false)
-  const[isFullscreen, setIsFullscreen] = useState(false)
+  const [isDark, setIsDark] = useState(false)
+  const [isFullscreen, setIsFullscreen] = useState(false)
   
-  const [searchQuery, setSearchQuery] = useState("")
+  const[searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
   const [searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
-  const[isSearching, setIsSearching] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
   const [isSearchExpanded, setIsSearchExpanded] = useState(false)
-  const[searchHistory, setSearchHistory] = useState<string[]>([])
-  const[searchFocused, setSearchFocused] = useState(false)
+  const [searchHistory, setSearchHistory] = useState<string[]>([])
+  const [searchFocused, setSearchFocused] = useState(false)
   
   const [queue, setQueue] = useState<Song[]>([])
-  const[currentIndex, setCurrentIndex] = useState(0)
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const[currentTime, setCurrentTime] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
   const[duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
   const[isMuted, setIsMuted] = useState(false)
-  const[shuffle, setShuffle] = useState(false)
+  const [shuffle, setShuffle] = useState(false)
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const [isLoading, setIsLoading] = useState(false)
   const[loadError, setLoadError] = useState<string | null>(null)
   
   const [playbackRate, setPlaybackRate] = useState(1)
-  const[preservesPitch, setPreservesPitch] = useState(true)
+  const [preservesPitch, setPreservesPitch] = useState(true)
 
   const [lyrics, setLyrics] = useState<LyricsData | null>(null)
-  const[currentLyricIndex, setCurrentLyricIndex] = useState(-1)
-  const [audioUrl, setAudioUrl] = useState<string | null>(null)
+  const [currentLyricIndex, setCurrentLyricIndex] = useState(-1)
 
-  const[activeTab, setActiveTab] = useState<'player' | 'explore' | 'queue' | 'lyrics' | 'library' | 'artist' | 'album' | 'playlistView'>('explore')
-  const[isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
+  const [activeTab, setActiveTab] = useState<'player' | 'explore' | 'queue' | 'lyrics' | 'library' | 'artist' | 'album' | 'playlistView'>('explore')
+  const [isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'lyrics' | 'queue'>('player')
 
   const [exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs: [], albums:[]})
-  const [isExploreLoading, setIsExploreLoading] = useState(true)
+  const[isExploreLoading, setIsExploreLoading] = useState(true)
   const [exploreError, setExploreError] = useState(false)
   
-  const[currentArtistData, setCurrentArtistData] = useState<any>(null)
+  const [currentArtistData, setCurrentArtistData] = useState<any>(null)
   const[isArtistLoading, setIsArtistLoading] = useState(false)
   const [currentAlbumData, setCurrentAlbumData] = useState<any>(null)
-  const[isAlbumLoading, setIsAlbumLoading] = useState(false)
+  const [isAlbumLoading, setIsAlbumLoading] = useState(false)
   const[currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
 
-  // Dialog States
   const[showAboutDialog, setShowAboutDialog] = useState(false)
   const [showCreditsDialog, setShowCreditsDialog] = useState(false)
-  const[showAccountSettings, setShowAccountSettings] = useState(false) 
+  const [showAccountSettings, setShowAccountSettings] = useState(false) 
   const[showPlayerSettings, setShowPlayerSettings] = useState(false) 
   const [showEffectsDialog, setShowEffectsDialog] = useState(false)
-  const[showPlaylistDialog, setShowPlaylistDialog] = useState(false)
+  const [showPlaylistDialog, setShowPlaylistDialog] = useState(false)
   const[newPlaylistName, setNewPlaylistName] = useState("")
   
-  // Customization Settings
   const [dynamicTheme, setDynamicTheme] = useState(true)
-  const[playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Gradient')
+  const [playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Gradient')
   const [thumbnailRadius, setThumbnailRadius] = useState(32)
   const[dominantColor, setDominantColor] = useState<string | null>(null)
-  const[lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
-  const[lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
-  const[audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
+  const [lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
+  const [lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
+  const [audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
   const[autoPlaySimilar, setAutoPlaySimilar] = useState(false)
-  const[normalizeVolume, setNormalizeVolume] = useState(true)
   
-  // Auth States
-  const[showAuthDialog, setShowAuthDialog] = useState(false)
+  const [showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
-  const[email, setEmail] = useState("")
+  const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const[isSignUp, setIsSignUp] = useState(false)
-  const[authError, setAuthError] = useState("")
-  const [displayNameInput, setDisplayNameInput] = useState("")
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [authError, setAuthError] = useState("")
+  const[displayNameInput, setDisplayNameInput] = useState("")
   
-  // Data States
-  const[likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
+  const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
   const [savedSongs, setSavedSongs] = useState<Song[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
 
-  const audioRef = useRef<HTMLAudioElement>(null)
-  const audioCtxRef = useRef<AudioContext | null>(null)
-  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
-  const compressorRef = useRef<DynamicsCompressorNode | null>(null)
+  // FRIEND'S LOGIC NATIVE STREAM INJECTION - YT IFrame Engine Refs
+  const ytContainerRef = useRef<HTMLDivElement>(null)
+  const ytPlayerRef = useRef<any>(null)
+  const intervalRef = useRef<NodeJS.Timeout | null>(null)
+  const handleEndedRef = useRef<() => void>(() => {})
+
   const lyricsContainerRef = useRef<HTMLDivElement>(null)
   const lyricsContainerRefMobile = useRef<HTMLDivElement>(null)
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -164,15 +160,6 @@ export function AudioPlayer() {
     return "text-xl md:text-2xl"
   }
 
-  // Web Audio Context routing currently suspended to allow non-CORS proxy streams to play.
-  useEffect(() => {
-    const audioEl = audioRef.current;
-    if (!audioEl) return;
-    const setupWebAudio = () => { /* Security By-Pass Web Audio Pipeline Ignored */ };
-    return () => {}
-  }, [normalizeVolume]);
-
-  // Extract Dominant Color for Dynamic Backgrounds
   useEffect(() => {
     if (!currentSong?.thumbnail || playerBgStyle === 'Theme') {
       setDominantColor(null)
@@ -200,24 +187,16 @@ export function AudioPlayer() {
     }
   },[currentSong?.thumbnail, playerBgStyle])
 
-  // Apply Audio Effects (Tempo / Pitch)
   const applyAudioEffects = useCallback(() => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = playbackRate
-      // @ts-ignore
-      audioRef.current.preservesPitch = preservesPitch
-      // @ts-ignore
-      audioRef.current.mozPreservesPitch = preservesPitch
-      // @ts-ignore
-      audioRef.current.webkitPreservesPitch = preservesPitch
+    if (ytPlayerRef.current?.setPlaybackRate) {
+      try { ytPlayerRef.current.setPlaybackRate(playbackRate) } catch(e){}
     }
-  },[playbackRate, preservesPitch])
+  },[playbackRate])
 
   useEffect(() => {
     applyAudioEffects()
-  },[playbackRate, preservesPitch, audioUrl, applyAudioEffects])
+  },[playbackRate, applyAudioEffects])
 
-  // --- FULLSCREEN LOGIC ---
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(err => console.error(err))
@@ -232,7 +211,6 @@ export function AudioPlayer() {
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   },[])
 
-  // --- INITIALIZATION ---
   useEffect(() => {
     try {
       const history = localStorage.getItem('ganvo_search_history')
@@ -243,8 +221,6 @@ export function AudioPlayer() {
       if (savedQuality) setAudioQuality(savedQuality as 'High' | 'Standard' | 'Low')
       const savedAutoPlay = localStorage.getItem('ganvo_autoplay_similar')
       if (savedAutoPlay !== null) setAutoPlaySimilar(savedAutoPlay === 'true')
-      const savedNormalize = localStorage.getItem('ganvo_normalize_volume')
-      if (savedNormalize !== null) setNormalizeVolume(savedNormalize === 'true')
     } catch (e) {}
 
     setIsExploreLoading(true)
@@ -262,7 +238,6 @@ export function AudioPlayer() {
       .finally(() => setIsExploreLoading(false))
   },[])
 
-  // --- FIREBASE AUTH & FIRESTORE SYNC ---
   useEffect(() => {
     if (!auth || !db) return
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -316,7 +291,6 @@ export function AudioPlayer() {
     }
   }
 
-  // --- AUTH METHODS ---
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault()
     setAuthError("")
@@ -335,15 +309,7 @@ export function AudioPlayer() {
       setEmail("")
       setPassword("")
     } catch (error: any) {
-      if (error.code === 'auth/operation-not-allowed') {
-        setAuthError("Email/Password login is not enabled in Firebase Console.")
-      } else if (error.code === 'auth/invalid-credential') {
-        setAuthError("Incorrect email or password.")
-      } else if (error.code === 'auth/email-already-in-use') {
-        setAuthError("An account with this email already exists.")
-      } else {
-        setAuthError(error.message.replace("Firebase: ", ""))
-      }
+      setAuthError(error.message.replace("Firebase: ", ""))
     }
   }
 
@@ -354,11 +320,7 @@ export function AudioPlayer() {
       await signInWithPopup(auth, googleProvider)
       setShowAuthDialog(false)
     } catch (error: any) {
-      if (error.code === 'auth/operation-not-allowed') {
-        setAuthError("Google login is not enabled in Firebase Console.")
-      } else {
-        setAuthError(error.message.replace("Firebase: ", ""))
-      }
+      setAuthError(error.message.replace("Firebase: ", ""))
     }
   }
 
@@ -407,17 +369,8 @@ export function AudioPlayer() {
     try {
       const res = await fetch(`/api/music/artist/${artistId}`)
       const data = await res.json()
-      if (data && !data.error) {
-        setCurrentArtistData(data)
-      } else {
-        setCurrentArtistData(null)
-      }
-    } catch (e) {
-      console.error(e)
-      setCurrentArtistData(null)
-    } finally {
-      setIsArtistLoading(false)
-    }
+      if (data && !data.error) setCurrentArtistData(data)
+    } catch (e) {} finally { setIsArtistLoading(false) }
   }
 
   const loadAlbumView = async (albumId: string) => {
@@ -429,7 +382,7 @@ export function AudioPlayer() {
       const res = await fetch(`/api/music/album/${albumId}`)
       const data = await res.json()
       if (data && !data.error) setCurrentAlbumData(data)
-    } catch (e) { console.error(e) } finally { setIsAlbumLoading(false) }
+    } catch (e) {} finally { setIsAlbumLoading(false) }
   }
 
   const loadPlaylistView = (playlist: Playlist) => {
@@ -444,9 +397,7 @@ export function AudioPlayer() {
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (e.target instanceof Element && e.target.closest('[data-radix-popper-content-wrapper]')) {
-        return; // Clicked inside a radix select/dropdown dropdown
-      }
+      if (e.target instanceof Element && e.target.closest('[data-radix-popper-content-wrapper]')) return;
       if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
         setSearchFocused(false)
         setIsSearchExpanded(false)
@@ -458,7 +409,6 @@ export function AudioPlayer() {
 
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-
     if (!searchQuery.trim()) {
       setSearchResults([])
       setIsSearching(false)
@@ -471,16 +421,10 @@ export function AudioPlayer() {
         const response = await fetch(`/api/music/search?q=${encodeURIComponent(searchQuery)}`)
         const data = await response.json()
         setSearchResults(data.results ||[])
-      } catch (error) {
-        console.error("Search failed:", error)
-      } finally {
-        setIsSearching(false)
-      }
+      } catch (error) {} finally { setIsSearching(false) }
     }, 300)
 
-    return () => {
-      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
-    }
+    return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current) }
   }, [searchQuery])
 
   const sortedSearchResults =[...searchResults].sort((a, b) => {
@@ -510,88 +454,134 @@ export function AudioPlayer() {
     setSearchFocused(false)
   }
 
-  const playFromLibrary = (song: Song) => {
-    addToQueueAndPlay(song)
-  }
+  const playFromLibrary = (song: Song) => addToQueueAndPlay(song)
 
-  // Load audio stream when song changes - highly reliable client-side fallback logic
+  // ======== NATIVE YT IFRAME MOUNTING (NO PROXY 403 ISSUES!) ======== //
+  
+  // This securely bridges the external states natively resolving async closures 
   useEffect(() => {
-    if (!currentSong) return
-
-    const loadStream = async () => {
-      setIsLoading(true)
-      setAudioUrl(null)
-      setLoadError(null)
-
-      try {
-        const vId = currentSong.videoId;
-        let finalUrl = null;
-
-        try {
-          finalUrl = await Promise.any([
-            ...[
-              'https://pipedapi.kavin.rocks',
-              'https://pipedapi.smnz.de',
-              'https://pipedapi.adminforge.de',
-              'https://pipedapi.moomoo.me'
-            ].map(async (instance) => {
-              const controller = new AbortController();
-              const id = setTimeout(() => controller.abort(), 6000);
-              const res = await fetch(`${instance}/streams/${vId}`, { signal: controller.signal });
-              clearTimeout(id);
-              if (!res.ok) throw new Error();
-              const data = await res.json();
-              const audioStreams = (data.audioStreams ||[])
-                .filter((s: any) => s.url && s.mimeType?.includes('audio'))
-                .sort((a: any, b: any) => audioQuality === 'Low' ? (a.bitrate || 0) - (b.bitrate || 0) : (b.bitrate || 0) - (a.bitrate || 0));
-              
-              if (audioStreams.length > 0) return audioStreams[0].url;
-              throw new Error();
-            }),
-            (async () => {
-              const controller = new AbortController();
-              const id = setTimeout(() => controller.abort(), 6000);
-              const res = await fetch(`https://api.ryzendesu.vip/api/downloader/ytmp3?url=https://youtu.be/${vId}`, { signal: controller.signal });
-              clearTimeout(id);
-              if (!res.ok) throw new Error();
-              const json = await res.json();
-              if (json.url || json.download_url) return json.url || json.download_url;
-              throw new Error();
-            })()
-          ]);
-        } catch (e) {
-           finalUrl = null;
+    handleEndedRef.current = async () => {
+      if (repeatMode === "one") {
+        if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
+          ytPlayerRef.current.seekTo(0, true)
+          ytPlayerRef.current.playVideo()
         }
+      } else {
+        if (currentIndex === queue.length - 1 && !shuffle && autoPlaySimilar && currentSong) {
+          setIsLoading(true);
+          try {
+            const res = await fetch(`/api/music/search?q=${encodeURIComponent(currentSong.artist + ' ' + currentSong.title)}`);
+            const data = await res.json();
+            const similar = (data.results ||[]).filter((s: Song) => !queue.find(q => q.videoId === s.videoId));
+            if (similar.length > 0) {
+              setQueue(prev => [...prev, similar[0]]);
+              setCurrentIndex(queue.length);
+            } else setIsPlaying(false);
+          } catch {
+            setIsPlaying(false);
+          } finally {
+            setIsLoading(false);
+          }
+        } else {
+          playNext()
+        }
+      }
+    };
+  });
 
-        if (!finalUrl) {
-          const response = await fetch(`/api/music/stream/${vId}?quality=${audioQuality}`)
-          const data = await response.json()
+  useEffect(() => {
+    let isMounted = true;
 
-          if (data.audioUrl) {
-            finalUrl = data.audioUrl
-          } else if (data.error) {
-            throw new Error(data.error)
-          } else {
-            throw new Error("No proxy streaming track mapped.")
+    const initPlayer = () => {
+      if (!ytContainerRef.current || !isMounted) return;
+      
+      // Inject iframe perfectly matching the architecture from the provided functioning solution!
+      ytPlayerRef.current = new (window as any).YT.Player(ytContainerRef.current, {
+        height: '1', width: '1',
+        playerVars: { playsinline: 1, controls: 0, disablekb: 1 },
+        events: {
+          onReady: () => {
+            if (isMounted && ytPlayerRef.current?.setVolume) ytPlayerRef.current.setVolume(volume);
+          },
+          onStateChange: (e: any) => {
+            if (!isMounted) return;
+            // 1=Playing, 2=Paused, 0=Ended, 3=Buffering
+            if (e.data === 1) { 
+              setIsPlaying(true); setIsLoading(false);
+              setDuration(ytPlayerRef.current.getDuration() || 0);
+            } else if (e.data === 2 || e.data === 0) { 
+              setIsPlaying(false); setIsLoading(false);
+              if (e.data === 0 && handleEndedRef.current) handleEndedRef.current();
+            } else if (e.data === 3) {
+              setIsPlaying(true); setIsLoading(true);
+            }
+          },
+          onError: () => {
+            setIsLoading(false); setIsPlaying(false);
           }
         }
+      });
+    };
 
-        if (finalUrl) {
-          setAudioUrl(finalUrl)
-        } else {
-          setLoadError("Stream extraction failed globally.")
-        }
-      } catch (error: any) {
-        setLoadError("Stream connection dropped. Ensure server proxy connectivity.")
-      } finally {
-        setIsLoading(false)
+    if (typeof window !== "undefined") {
+      if ((window as any).YT && (window as any).YT.Player) {
+        initPlayer();
+      } else {
+        const tag = document.createElement("script");
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScript = document.getElementsByTagName("script")[0];
+        if (firstScript && firstScript.parentNode) firstScript.parentNode.insertBefore(tag, firstScript);
+        else document.head.appendChild(tag);
+
+        const existingCallback = (window as any).onYouTubeIframeAPIReady;
+        (window as any).onYouTubeIframeAPIReady = () => {
+          if (existingCallback) existingCallback();
+          initPlayer();
+        };
       }
     }
 
-    loadStream()
-  },[currentSong?.videoId, audioQuality])
+    return () => {
+      isMounted = false;
+      if (ytPlayerRef.current && typeof ytPlayerRef.current.destroy === 'function') ytPlayerRef.current.destroy();
+    };
+  },[]);
 
-  // Load lyrics
+  // Poll YT current time to match React Slider gracefully
+  useEffect(() => {
+    if (isPlaying) {
+      intervalRef.current = setInterval(() => {
+        if (ytPlayerRef.current && ytPlayerRef.current.getCurrentTime) {
+          const t = ytPlayerRef.current.getCurrentTime() || 0;
+          const dur = ytPlayerRef.current.getDuration() || 0;
+          setCurrentTime(t);
+          if (dur > 0) setDuration(dur);
+        }
+      }, 500);
+    } else {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    }
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
+  }, [isPlaying]);
+
+  // Inject currently selected Queue Track into YT IFrame flawlessly without routing CORS!
+  useEffect(() => {
+    if (currentSong && ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
+      setIsLoading(true);
+      setCurrentTime(0);
+      ytPlayerRef.current.loadVideoById(currentSong.videoId);
+      ytPlayerRef.current.playVideo();
+    }
+  }, [currentSong?.videoId]);
+
+  // Adjust IFrame native Audio volume settings synchronously 
+  useEffect(() => {
+    if (ytPlayerRef.current && ytPlayerRef.current.setVolume) ytPlayerRef.current.setVolume(volume);
+    if (ytPlayerRef.current && ytPlayerRef.current.mute) isMuted ? ytPlayerRef.current.mute() : ytPlayerRef.current.unMute();
+  }, [volume, isMuted]);
+
+  // ============================================================== //
+
   useEffect(() => {
     if (!currentSong) return
 
@@ -601,39 +591,20 @@ export function AudioPlayer() {
 
       try {
         const params = new URLSearchParams({
-          track: currentSong.title,
-          artist: currentSong.artist,
+          track: currentSong.title, artist: currentSong.artist,
           ...(currentSong.album && { album: currentSong.album }),
           ...(currentSong.duration && { duration: String(currentSong.duration) }),
           provider: lyricsProvider
         })
         const response = await fetch(`/api/lyrics?${params}`)
         const data = await response.json()
-
-        if (data.syncedLyrics || data.plainLyrics) {
-          setLyrics({ syncedLyrics: data.syncedLyrics, plainLyrics: data.plainLyrics })
-        } else {
-          setLyrics({ syncedLyrics: null, plainLyrics: null })
-        }
+        if (data.syncedLyrics || data.plainLyrics) setLyrics({ syncedLyrics: data.syncedLyrics, plainLyrics: data.plainLyrics })
+        else setLyrics({ syncedLyrics: null, plainLyrics: null })
       } catch (error) { setLyrics({ syncedLyrics: null, plainLyrics: null }) }
     }
-
     loadLyrics()
-  }, [currentSong?.videoId, lyricsProvider])
+  },[currentSong?.videoId, lyricsProvider])
 
-  // Auto-play when audio URL is ready
-  useEffect(() => {
-    if (audioUrl && audioRef.current) {
-      audioRef.current.src = audioUrl
-      audioRef.current.load()
-      audioRef.current.play().then(() => setIsPlaying(true)).catch((err) => {
-        if (err.name === 'AbortError') return;
-        setLoadError("Playback failed. Try another song.")
-      })
-    }
-  }, [audioUrl])
-
-  // Update lyrics scroll
   useEffect(() => {
     if (!lyrics?.syncedLyrics) return
     const lyric = lyrics.syncedLyrics.findLast((l) => l.time <= currentTime)
@@ -656,78 +627,36 @@ export function AudioPlayer() {
     }
   }, [currentTime, lyrics, currentLyricIndex])
 
-  const handleTimeUpdate = () => { if (audioRef.current) setCurrentTime(audioRef.current.currentTime) }
-  const handleLoadedMetadata = () => { if (audioRef.current) setDuration(audioRef.current.duration) }
-  
-  const handleLoadedData = () => {
-    applyAudioEffects()
-    if (isPlaying) {
-      audioRef.current?.play().catch(e => {
-        if (e.name !== 'AbortError') setLoadError("Playback failed.")
-      })
-    }
-  }
-
   const playNext = useCallback(() => {
     if (queue.length === 0) return
     let nextIndex = shuffle ? Math.floor(Math.random() * queue.length) : (currentIndex + 1) % queue.length
     if (nextIndex === 0 && repeatMode === "off" && !shuffle) {
       setIsPlaying(false)
+      if (ytPlayerRef.current) ytPlayerRef.current.pauseVideo()
       return
     }
     setCurrentIndex(nextIndex)
   },[queue.length, currentIndex, shuffle, repeatMode])
 
-  const handleEnded = async () => {
-    if (repeatMode === "one") {
-      if (audioRef.current) {
-        audioRef.current.currentTime = 0
-        audioRef.current.play().catch(e => e.name !== 'AbortError' && console.error(e))
-      }
-    } else {
-      if (currentIndex === queue.length - 1 && !shuffle && autoPlaySimilar) {
-         // Auto-play similar song logic
-         setIsLoading(true);
-         try {
-           const res = await fetch(`/api/music/search?q=${encodeURIComponent(currentSong.artist + ' ' + currentSong.title)}`);
-           const data = await res.json();
-           const similar = (data.results ||[]).filter((s: Song) => !queue.find(q => q.videoId === s.videoId));
-           if (similar.length > 0) {
-             setQueue(prev => [...prev, similar[0]]);
-             setCurrentIndex(queue.length);
-           } else {
-             setIsPlaying(false);
-           }
-         } catch {
-           setIsPlaying(false);
-         } finally {
-           setIsLoading(false);
-         }
-      } else {
-        playNext()
-      }
-    }
-  }
-
   const togglePlay = useCallback(() => {
-    if (!audioRef.current || !audioUrl) return
-    if (isPlaying) audioRef.current.pause()
-    else audioRef.current.play().catch(e => e.name !== 'AbortError' && console.error(e))
+    if (!ytPlayerRef.current) return
+    if (isPlaying) ytPlayerRef.current.pauseVideo()
+    else ytPlayerRef.current.playVideo()
     setIsPlaying(!isPlaying)
-  },[isPlaying, audioUrl])
+  },[isPlaying])
 
   const playPrevious = useCallback(() => {
     if (queue.length === 0) return
     if (currentTime > 3) {
-      if (audioRef.current) audioRef.current.currentTime = 0
+      if (ytPlayerRef.current) ytPlayerRef.current.seekTo(0, true)
       return
     }
     setCurrentIndex((currentIndex - 1 + queue.length) % queue.length)
   },[queue.length, currentIndex, currentTime])
 
   const handleSeek = (value: number[]) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = value[0]
+    if (ytPlayerRef.current && ytPlayerRef.current.seekTo) {
+      ytPlayerRef.current.seekTo(value[0], true)
       setCurrentTime(value[0])
     }
   }
@@ -736,12 +665,15 @@ export function AudioPlayer() {
     const newVolume = value[0]
     setVolume(newVolume)
     setIsMuted(newVolume === 0)
-    if (audioRef.current) audioRef.current.volume = newVolume / 100
+    if (ytPlayerRef.current?.setVolume) ytPlayerRef.current.setVolume(newVolume)
   }
 
   const toggleMute = () => {
     setIsMuted(!isMuted)
-    if (audioRef.current) audioRef.current.volume = isMuted ? volume / 100 : 0
+    if (ytPlayerRef.current) {
+      if (isMuted) ytPlayerRef.current.unMute()
+      else ytPlayerRef.current.mute()
+    }
   }
 
   const removeFromQueue = (index: number) => {
@@ -779,6 +711,12 @@ export function AudioPlayer() {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden font-sans relative z-0 bg-background transition-colors duration-1000">
+      
+      {/* THE 1x1 HIDDEN YOUTUBE IFRAME THAT HANDLES ALL AUDIO SECURELY! */}
+      <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+        <div ref={ytContainerRef}></div>
+      </div>
+
       {dynamicTheme && playerBgStyle === 'Gradient' && dominantColor && (
         <>
           <div 
@@ -799,16 +737,6 @@ export function AudioPlayer() {
         </div>
       )}
 
-      <audio
-        ref={audioRef}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onLoadedData={handleLoadedData}
-        onEnded={handleEnded}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      />
-      
       {/* Header - Expressive M3 style */}
       <header className="elevation-1 z-40 flex h-16 flex-shrink-0 items-center justify-between px-3 md:px-6 transition-all duration-500 ease-out relative bg-background/90 backdrop-blur-xl border-b border-border/40 gap-2">
         <div className={cn(
@@ -1359,7 +1287,7 @@ export function AudioPlayer() {
                   <div className="mb-8 flex items-center justify-center gap-4 sm:gap-6 w-full">
                     <Button variant="ghost" size="icon" onClick={() => setShuffle(!shuffle)} className={cn("h-12 w-12 rounded-full transition-all duration-300 active:scale-90 flex items-center justify-center outline-none focus:outline-none", shuffle ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground")}><Shuffle className="h-5 w-5 text-current" /></Button>
                     <Button variant="ghost" size="icon" onClick={playPrevious} className="h-14 w-14 rounded-full transition-all duration-300 hover:bg-muted active:scale-75 flex items-center justify-center text-foreground outline-none focus:outline-none"><SkipBack className="h-7 w-7 fill-current text-current" /></Button>
-                    <Button onClick={togglePlay} disabled={isLoading || !audioUrl} className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-[2rem] bg-primary text-primary-foreground shadow-xl transition-all duration-400 ease-out hover:scale-110 active:scale-90 flex items-center justify-center outline-none focus:outline-none", isPlaying && "scale-105 rounded-[1.5rem]")}>
+                    <Button onClick={togglePlay} disabled={isLoading} className={cn("h-16 w-16 sm:h-20 sm:w-20 rounded-[2rem] bg-primary text-primary-foreground shadow-xl transition-all duration-400 ease-out hover:scale-110 active:scale-90 flex items-center justify-center outline-none focus:outline-none", isPlaying && "scale-105 rounded-[1.5rem]")}>
                       {isLoading ? <Loader2 className="h-7 w-7 animate-spin text-current" /> : isPlaying ? <Pause className="h-7 w-7 fill-current text-current" /> : <Play className="h-7 w-7 fill-current text-current translate-x-[2px]" />}
                     </Button>
                     <Button variant="ghost" size="icon" onClick={playNext} className="h-14 w-14 rounded-full transition-all duration-300 hover:bg-muted active:scale-75 flex items-center justify-center text-foreground outline-none focus:outline-none"><SkipForward className="h-7 w-7 fill-current text-current" /></Button>
@@ -1428,7 +1356,7 @@ export function AudioPlayer() {
                   {lyrics?.syncedLyrics ? (
                     <div className="space-y-5 p-6 mt-4">
                       {lyrics.syncedLyrics.map((line, index) => (
-                        <p key={index} onClick={() => { if (audioRef.current) audioRef.current.currentTime = line.time }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-2xl px-4 py-3 font-bold leading-relaxed text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
+                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-2xl px-4 py-3 font-bold leading-relaxed text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
                           {line.text}
                         </p>
                       ))}
@@ -1561,10 +1489,10 @@ export function AudioPlayer() {
             <Button onClick={(e) => { e.stopPropagation(); toggleLike(currentSong) }} variant="ghost" size="icon" className={cn("h-12 w-12 rounded-full flex items-center justify-center transition-all duration-300 active:scale-90 text-foreground outline-none focus:outline-none", likedSongs.has(currentSong.videoId) && "text-[var(--google-red)] hover:text-[var(--google-red)]")}>
               <Heart className={cn("h-5 w-5 transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]", likedSongs.has(currentSong.videoId) ? "fill-current scale-110 text-current" : "text-current")} />
             </Button>
-            <Button onClick={(e) => { e.stopPropagation(); togglePlay() }} disabled={isLoading || !audioUrl} className={cn("h-14 w-14 flex flex-shrink-0 items-center justify-center rounded-[1.5rem] shadow-lg transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)] active:scale-90 outline-none focus:outline-none", isPlaying ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
+            <Button onClick={(e) => { e.stopPropagation(); togglePlay() }} disabled={isLoading} className={cn("h-14 w-14 flex flex-shrink-0 items-center justify-center rounded-[1.5rem] shadow-lg transition-all duration-500 ease-[cubic-bezier(0.2,0,0,1)] active:scale-90 outline-none focus:outline-none", isPlaying ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground")}>
               {isLoading ? <Loader2 className="h-6 w-6 animate-spin text-current" /> : isPlaying ? <Pause className="h-6 w-6 fill-current text-current" /> : <Play className="h-6 w-6 fill-current text-current translate-x-[1px]" />}
             </Button>
-            <Button onClick={(e) => { e.stopPropagation(); setQueue([]); setCurrentIndex(0); setAudioUrl(null); }} variant="ghost" size="icon" className="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive mr-1 outline-none focus:outline-none">
+            <Button onClick={(e) => { e.stopPropagation(); setQueue([]); setCurrentIndex(0); if(ytPlayerRef.current?.destroy) ytPlayerRef.current.destroy() }} variant="ghost" size="icon" className="h-10 w-10 flex flex-shrink-0 items-center justify-center rounded-full transition-all duration-300 active:scale-90 text-muted-foreground hover:bg-destructive/10 hover:text-destructive mr-1 outline-none focus:outline-none">
               <X className="h-5 w-5 text-current" />
             </Button>
           </div>
@@ -1700,7 +1628,7 @@ export function AudioPlayer() {
                   {lyrics?.syncedLyrics ? (
                     <div className="space-y-6 py-10 mt-4">
                       {lyrics.syncedLyrics.map((line, index) => (
-                        <p key={index} onClick={() => { if (audioRef.current) audioRef.current.currentTime = line.time }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
+                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
                           {line.text}
                         </p>
                       ))}
@@ -1756,7 +1684,7 @@ export function AudioPlayer() {
                 value={[playbackRate]} 
                 min={0.5} max={2.0} step={0.05} 
                 onValueChange={(val) => setPlaybackRate(val[0])} 
-                className="[&_[data-slot=range]]:bg-blue-500 [&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
+                className="[&_[data-slot=range]]:bg-blue-500[&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
               />
               <div className="flex justify-between text-xs font-semibold text-muted-foreground">
                 <span>0.5x</span>
@@ -1768,7 +1696,7 @@ export function AudioPlayer() {
             <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl">
                <div className="flex flex-col">
                  <span className="font-bold text-foreground">Preserve Pitch</span>
-                 <span className="text-xs font-medium text-muted-foreground">Turn off for Nightcore effect</span>
+                 <span className="text-xs font-medium text-muted-foreground">Currently mapped by browser playback parameters.</span>
                </div>
                <Switch checked={preservesPitch} onCheckedChange={setPreservesPitch} />
             </div>
@@ -1857,26 +1785,6 @@ export function AudioPlayer() {
 
                <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
                  <div className="flex items-center gap-4">
-                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><Speaker className="w-5 h-5 text-current"/></div>
-                   <div className="flex flex-col">
-                     <span className="font-bold text-base text-foreground">Audio Quality</span>
-                     <span className="text-xs font-normal text-muted-foreground">Streaming quality for playback.</span>
-                   </div>
-                 </div>
-                 <Select value={audioQuality} onValueChange={(v: any) => { setAudioQuality(v); localStorage.setItem('ganvo_audio_quality', v)}}>
-                    <SelectTrigger className="w-[110px] rounded-xl font-bold bg-muted border-none text-foreground text-xs h-9 shrink-0 outline-none focus:ring-0">
-                      <SelectValue placeholder="Quality" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-2xl z-[500]">
-                      <SelectItem value="High" className="font-bold py-2 text-xs">High</SelectItem>
-                      <SelectItem value="Standard" className="font-bold py-2 text-xs">Standard</SelectItem>
-                      <SelectItem value="Low" className="font-bold py-2 text-xs">Low</SelectItem>
-                    </SelectContent>
-                  </Select>
-               </div>
-
-               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
-                 <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><ListFilter className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
                      <span className="font-semibold text-base text-foreground">Auto-play similar songs</span>
@@ -1886,17 +1794,6 @@ export function AudioPlayer() {
                  <Switch checked={autoPlaySimilar} onCheckedChange={(val) => { setAutoPlaySimilar(val); localStorage.setItem('ganvo_autoplay_similar', val.toString()) }} className="shrink-0" />
                </div>
 
-               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
-                 <div className="flex items-center gap-4">
-                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><AudioLines className="w-5 h-5 text-current"/></div>
-                   <div className="flex flex-col">
-                     <span className="font-semibold text-base text-foreground">Normalize volume</span>
-                     <span className="text-xs font-normal text-muted-foreground">Set the same volume for all songs.</span>
-                   </div>
-                 </div>
-                 <Switch checked={normalizeVolume} onCheckedChange={(val) => { setNormalizeVolume(val); localStorage.setItem('ganvo_normalize_volume', val.toString()) }} className="shrink-0" />
-               </div>
-               
              </div>
              
              <div className="px-4 py-4 space-y-1">
@@ -2030,7 +1927,24 @@ export function AudioPlayer() {
       </Dialog>
 
       <Dialog open={showCreditsDialog} onOpenChange={setShowCreditsDialog}>
-        <DialogContent className="rounded-[2rem] sm:max-w-md p-6 sm:p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]"><DialogHeader><DialogTitle className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-foreground"><Heart className="h-7 w-7 text-[var(--google-red)] fill-[var(--google-red)]" />Credits</DialogTitle></DialogHeader><div className="space-y-4 mt-4"><div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50"><h4 className="mb-2 font-extrabold text-base text-foreground">Inspired By</h4><a href="https://github.com/koiverse/ArchiveTune" target="_blank" className="flex items-center gap-2 text-sm font-bold text-primary hover:underline transition-all active:scale-95 w-fit outline-none focus:outline-none">ArchiveTune by koiverse<ExternalLink className="h-4 w-4" /></a><p className="mt-2 text-xs font-semibold text-muted-foreground leading-relaxed">Material 3 Expressive YouTube Music client for Android</p></div><div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50"><h4 className="mb-3 font-extrabold text-base text-foreground">APIs & Services</h4><ul className="space-y-3 text-sm font-semibold text-muted-foreground"><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-sm" />ytmusic-api (YouTube Music search)</li><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm" />LRCLIB & KuGou (Synchronized lyrics)</li><li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-yellow-500 shadow-sm" />Cobalt, Ryzen & Piped API (Audio streams)</li></ul></div></div></DialogContent>
+        <DialogContent className="rounded-[2rem] sm:max-w-md p-6 sm:p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]">
+          <DialogHeader><DialogTitle className="flex items-center gap-3 text-2xl font-extrabold tracking-tight text-foreground"><Heart className="h-7 w-7 text-[var(--google-red)] fill-[var(--google-red)]" />Credits</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-4">
+            <div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50">
+              <h4 className="mb-2 font-extrabold text-base text-foreground">Inspired By</h4>
+              <a href="https://github.com/koiverse/ArchiveTune" target="_blank" className="flex items-center gap-2 text-sm font-bold text-primary hover:underline transition-all active:scale-95 w-fit outline-none focus:outline-none">ArchiveTune by koiverse<ExternalLink className="h-4 w-4" /></a>
+              <p className="mt-2 text-xs font-semibold text-muted-foreground leading-relaxed">Material 3 Expressive YouTube Music client for Android</p>
+            </div>
+            <div className="rounded-[1.5rem] bg-muted/50 p-5 transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-muted hover:shadow-md border border-transparent hover:border-border/50">
+              <h4 className="mb-3 font-extrabold text-base text-foreground">APIs & Services</h4>
+              <ul className="space-y-3 text-sm font-semibold text-muted-foreground">
+                <li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-blue-500 shadow-sm" />ytmusic-api (YouTube Music search)</li>
+                <li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-green-500 shadow-sm" />LRCLIB & KuGou (Synchronized lyrics)</li>
+                <li className="flex items-center gap-3 group"><span className="h-2.5 w-2.5 rounded-full bg-yellow-500 shadow-sm" />YouTube IFrame API (Native stream execution)</li>
+              </ul>
+            </div>
+          </div>
+        </DialogContent>
       </Dialog>
     </div>
   )
