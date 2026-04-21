@@ -55,38 +55,38 @@ const ScrollableRow = ({ children, title, icon: Icon }: { children: React.ReactN
   return (
     <div>
       {title && Icon && <h3 className="text-2xl font-bold mb-6 flex items-center gap-2 text-foreground"><Icon className="h-6 w-6 text-primary"/> {title}</h3>}
-      <div className="relative group">
-        <Button variant="secondary" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: -400, behavior: 'smooth' })}><ChevronLeft className="h-5 w-5 text-foreground" /></Button>
-        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }} className="w-full overflow-hidden -my-8 py-8">
+      <div className="relative group/scroll">
+        <Button variant="secondary" size="icon" className="absolute left-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover/scroll:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: -400, behavior: 'smooth' })}><ChevronLeft className="h-5 w-5 text-foreground" /></Button>
+        <div style={{ WebkitMaskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)', maskImage: 'linear-gradient(to right, transparent, black 5%, black 95%, transparent)' }} className="w-full overflow-hidden -my-12 py-12">
           <div ref={rowRef} className="flex overflow-x-auto gap-4 md:gap-6 snap-x no-scrollbar px-6 scroll-smooth">
             {children}
           </div>
         </div>
-        <Button variant="secondary" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: 400, behavior: 'smooth' })}><ChevronRight className="h-5 w-5 text-foreground" /></Button>
+        <Button variant="secondary" size="icon" className="absolute right-2 top-1/2 -translate-y-1/2 z-10 hidden md:flex opacity-0 group-hover/scroll:opacity-100 transition-opacity rounded-full shadow-md" onClick={() => rowRef.current?.scrollBy({ left: 400, behavior: 'smooth' })}><ChevronRight className="h-5 w-5 text-foreground" /></Button>
       </div>
     </div>
   )
 }
 
 export function AudioPlayer() {
-  const [isDark, setIsDark] = useState(false)
+  const[isDark, setIsDark] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
   
-  const[searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
-  const[searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
+  const [searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
   const [isSearching, setIsSearching] = useState(false)
-  const[isSearchExpanded, setIsSearchExpanded] = useState(false)
-  const [searchHistory, setSearchHistory] = useState<string[]>([])
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const[searchHistory, setSearchHistory] = useState<string[]>([])
   const [searchFocused, setSearchFocused] = useState(false)
   
-  const[queue, setQueue] = useState<Song[]>([])
+  const [queue, setQueue] = useState<Song[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(0)
+  const[currentTime, setCurrentTime] = useState(0)
   const [duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
-  const [isMuted, setIsMuted] = useState(false)
+  const[isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const [isLoading, setIsLoading] = useState(false)
@@ -103,38 +103,38 @@ export function AudioPlayer() {
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'lyrics' | 'queue'>('player')
 
   const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks: [], artists:[], songs: [], albums:[]})
-  const[isExploreLoading, setIsExploreLoading] = useState(true)
-  const [exploreError, setExploreError] = useState(false)
+  const [isExploreLoading, setIsExploreLoading] = useState(true)
+  const[exploreError, setExploreError] = useState(false)
   
   const [currentArtistData, setCurrentArtistData] = useState<any>(null)
-  const[isArtistLoading, setIsArtistLoading] = useState(false)
+  const [isArtistLoading, setIsArtistLoading] = useState(false)
   const [currentAlbumData, setCurrentAlbumData] = useState<any>(null)
-  const [isAlbumLoading, setIsAlbumLoading] = useState(false)
-  const[currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
+  const[isAlbumLoading, setIsAlbumLoading] = useState(false)
+  const [currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
 
   const [showAboutDialog, setShowAboutDialog] = useState(false)
-  const [showCreditsDialog, setShowCreditsDialog] = useState(false)
-  const[showAccountSettings, setShowAccountSettings] = useState(false) 
+  const[showCreditsDialog, setShowCreditsDialog] = useState(false)
+  const [showAccountSettings, setShowAccountSettings] = useState(false) 
   const [showPlayerSettings, setShowPlayerSettings] = useState(false) 
-  const [showEffectsDialog, setShowEffectsDialog] = useState(false)
-  const[showPlaylistDialog, setShowPlaylistDialog] = useState(false)
+  const[showEffectsDialog, setShowEffectsDialog] = useState(false)
+  const [showPlaylistDialog, setShowPlaylistDialog] = useState(false)
   const [newPlaylistName, setNewPlaylistName] = useState("")
   
-  const [dynamicTheme, setDynamicTheme] = useState(true)
-  const[playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Gradient')
-  const[thumbnailRadius, setThumbnailRadius] = useState(32)
+  const[dynamicTheme, setDynamicTheme] = useState(true)
+  const [playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Gradient')
+  const [thumbnailRadius, setThumbnailRadius] = useState(32)
   const [dominantColor, setDominantColor] = useState<string | null>(null)
-  const [lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
-  const [lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
-  const [audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
-  const [autoPlaySimilar, setAutoPlaySimilar] = useState(false)
+  const[lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
+  const[lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
+  const[audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
+  const[autoPlaySimilar, setAutoPlaySimilar] = useState(false)
   
   const[showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [email, setEmail] = useState("")
-  const[password, setPassword] = useState("")
+  const [password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
-  const [authError, setAuthError] = useState("")
+  const[authError, setAuthError] = useState("")
   const [displayNameInput, setDisplayNameInput] = useState("")
   
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
@@ -160,7 +160,7 @@ export function AudioPlayer() {
     return "text-xl md:text-2xl"
   }
 
-  // FIX: WebGL Crash & Memory Leaks via safe scaled Canvas pixel processing
+  // Optimized Theme/Canvas Color Extraction
   useEffect(() => {
     if (!currentSong?.thumbnail || playerBgStyle === 'Theme') {
       setDominantColor(null)
@@ -171,8 +171,7 @@ export function AudioPlayer() {
     img.src = currentSong.thumbnail
     img.onload = () => {
       const canvas = document.createElement('canvas')
-      // Drastically reduce sampled resolution dimension limits down 
-      // preventing heavy Memory-Leak/GPU WebGL Chromium "Aw snap" crashes
+      // Restricted to 64x64 prevents catastrophic OOM Chromium crashes during intense scraping
       canvas.width = 64
       canvas.height = 64
       const ctx = canvas.getContext('2d')
@@ -428,7 +427,7 @@ export function AudioPlayer() {
     }, 300)
 
     return () => { if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current) }
-  },[searchQuery])
+  }, [searchQuery])
 
   const sortedSearchResults =[...searchResults].sort((a, b) => {
     if (searchSort === 'az') return a.title.localeCompare(b.title)
@@ -459,9 +458,7 @@ export function AudioPlayer() {
 
   const playFromLibrary = (song: Song) => addToQueueAndPlay(song)
 
-  // ======== NATIVE YT IFRAME MOUNTING (NO PROXY 403 ISSUES!) ======== //
-  
-  // This securely bridges the external states natively resolving async closures 
+  // ======== NATIVE YT IFRAME MOUNTING ======== //
   useEffect(() => {
     handleEndedRef.current = async () => {
       if (repeatMode === "one") {
@@ -497,8 +494,6 @@ export function AudioPlayer() {
 
     const initPlayer = () => {
       if (!ytContainerRef.current || !isMounted) return;
-      
-      // Inject iframe matching logic
       ytPlayerRef.current = new (window as any).YT.Player(ytContainerRef.current, {
         height: '1', width: '1',
         playerVars: { playsinline: 1, controls: 0, disablekb: 1 },
@@ -508,7 +503,6 @@ export function AudioPlayer() {
           },
           onStateChange: (e: any) => {
             if (!isMounted) return;
-            // 1=Playing, 2=Paused, 0=Ended, 3=Buffering
             if (e.data === 1) { 
               setIsPlaying(true); setIsLoading(false);
               setDuration(ytPlayerRef.current.getDuration() || 0);
@@ -550,7 +544,6 @@ export function AudioPlayer() {
     };
   },[]);
 
-  // Poll YT current time to match React Slider gracefully
   useEffect(() => {
     if (isPlaying) {
       intervalRef.current = setInterval(() => {
@@ -565,9 +558,8 @@ export function AudioPlayer() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  },[isPlaying]);
+  }, [isPlaying]);
 
-  // Inject currently selected Queue Track into YT IFrame flawlessly
   useEffect(() => {
     if (currentSong && ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
       setIsLoading(true);
@@ -577,13 +569,10 @@ export function AudioPlayer() {
     }
   }, [currentSong?.videoId]);
 
-  // Adjust IFrame native Audio volume settings synchronously 
   useEffect(() => {
     if (ytPlayerRef.current && ytPlayerRef.current.setVolume) ytPlayerRef.current.setVolume(volume);
     if (ytPlayerRef.current && ytPlayerRef.current.mute) isMuted ? ytPlayerRef.current.mute() : ytPlayerRef.current.unMute();
-  }, [volume, isMuted]);
-
-  // ============================================================== //
+  },[volume, isMuted]);
 
   useEffect(() => {
     if (!currentSong) return
@@ -715,7 +704,6 @@ export function AudioPlayer() {
   return (
     <div className="flex h-screen flex-col overflow-hidden font-sans relative z-0 bg-background transition-colors duration-1000">
       
-      {/* THE 1x1 HIDDEN YOUTUBE IFRAME THAT HANDLES ALL AUDIO SECURELY! */}
       <div style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
         <div ref={ytContainerRef}></div>
       </div>
@@ -740,18 +728,18 @@ export function AudioPlayer() {
         </div>
       )}
 
-      {/* Header - Expressive M3 style */}
+      {/* Header Layout Optimized */}
       <header className="elevation-1 z-40 flex h-16 flex-shrink-0 items-center justify-between px-3 md:px-6 transition-all duration-500 ease-out relative bg-background/90 backdrop-blur-xl border-b border-border/40 gap-2">
         <div className={cn(
-          "items-center shrink-0 transition-all duration-500 ease-out origin-left overflow-hidden", 
-          searchFocused ? "hidden md:flex md:w-auto md:min-w-[140px] md:mr-4 gap-3" : "flex w-[40px] md:w-auto md:min-w-[140px] mr-1 md:mr-4 gap-3"
+          "flex items-center shrink-0 transition-all duration-500 ease-out origin-left overflow-hidden whitespace-nowrap", 
+          searchFocused ? "w-0 opacity-0 md:w-auto md:min-w-[140px] md:mr-4 gap-0 md:gap-3" : "w-[40px] md:w-auto md:min-w-[140px] mr-2 md:mr-4 gap-3"
         )}>
           <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary transition-transform duration-700 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-110 shadow-md">
             <Music2 className="h-5 w-5 text-primary-foreground fill-current" />
           </div>
-          <div className="hidden sm:flex items-baseline gap-1 whitespace-nowrap">
+          <div className={cn("hidden sm:flex items-baseline pl-1 opacity-100 transition-opacity duration-300", searchFocused && "md:flex")}>
             <span className="text-xl font-normal text-muted-foreground tracking-tight">Ganvo</span>
-            <span className="text-xl font-bold tracking-tight text-foreground">Music</span>
+            <span className="text-[20px] font-bold tracking-tight text-foreground ml-1">Music</span>
           </div>
         </div>
 
@@ -783,9 +771,9 @@ export function AudioPlayer() {
             )}
           </div>
 
-          {/* Search Dropdown */}
+          {/* Search Dropdown max width container resolved */}
           {showSearchDropdown && (
-            <div className="absolute left-0 right-0 top-full z-[60] mt-3 flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300 ease-out">
+            <div className="absolute left-0 right-0 top-full z-[60] mt-3 flex flex-col overflow-hidden rounded-2xl border bg-card shadow-2xl animate-in fade-in zoom-in-95 slide-in-from-top-4 duration-300 ease-out max-w-full">
               <div className={cn("flex-1 overflow-y-auto min-h-0 overscroll-contain transition-all duration-500", isSearchExpanded ? "max-h-[70vh]" : "max-h-[400px]")}>
                 <div className="p-2">
                   {searchQuery.trim() === "" ? (
@@ -1229,7 +1217,7 @@ export function AudioPlayer() {
                 </div>
              </div>
           ) :['player', 'lyrics', 'queue', 'library'].includes(activeTab) ? (
-            <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 md:px-8 relative">
+            <div className="flex flex-1 flex-col items-center justify-center px-4 py-6 md:px-8 relative h-full">
               {loadError && (
                 <div className="absolute top-4 bg-destructive/90 text-destructive-foreground px-4 py-2 rounded-xl font-bold text-sm shadow-lg z-50 animate-in fade-in slide-in-from-top-4 text-center mx-4">
                   {loadError}
@@ -1302,7 +1290,7 @@ export function AudioPlayer() {
                   <div className="flex w-full items-center justify-between gap-3 px-2">
                     <div className="flex flex-1 items-center gap-3 rounded-2xl bg-muted/60 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:bg-muted/80">
                       <Button variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 flex-shrink-0 rounded-full p-0 transition-transform duration-300 hover:scale-110 active:scale-90 flex items-center justify-center text-foreground outline-none focus:outline-none"><VolumeIcon className="h-5 w-5 text-current" /></Button>
-                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4[&_[data-slot=track]]:h-1.5 [&_[data-slot=track]]:bg-foreground/10" />
+                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=track]]:h-1.5 [&_[data-slot=track]]:bg-foreground/10" />
                       <span className="w-8 flex-shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{isMuted ? 0 : volume}%</span>
                     </div>
                   </div>
@@ -1374,7 +1362,7 @@ export function AudioPlayer() {
                 </div>
               </div>
             ) : activeTab === 'library' ? (
-               <div className="p-4 space-y-6 pb-32 animate-in slide-in-from-bottom-8 duration-700 ease-out">
+               <div className="p-4 space-y-6 pb-32 animate-in slide-in-from-bottom-8 duration-700 ease-out overflow-y-auto" style={{ maskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)' }}>
                   {/* Playlists Section */}
                   <div>
                     <div className="mb-4 px-2 flex items-center justify-between">
@@ -1440,7 +1428,7 @@ export function AudioPlayer() {
                   </div>
                </div>
             ) : (
-              <div className="p-3 space-y-2 pb-32 animate-in slide-in-from-bottom-8 duration-700 ease-out overflow-y-auto" style={{ maskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)' }}>
+              <div className="p-3 space-y-2 pb-32 animate-in slide-in-from-bottom-8 duration-700 ease-out overflow-y-auto no-scrollbar" style={{ maskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, black 0%, black 85%, transparent 100%)' }}>
                 {queue.length > 0 ? (
                   queue.map((song, index) => (
                     <div key={`${song.videoId}-${index}`} className={cn("group flex items-center gap-3 rounded-2xl p-2 transition-all duration-300 hover:bg-muted/80", index === currentIndex ? "bg-primary/5 shadow-sm border border-primary/10 scale-[1.02]" : "border border-transparent")}>
