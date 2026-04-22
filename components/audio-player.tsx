@@ -155,9 +155,9 @@ export function AudioPlayer() {
   const currentSong = queue[currentIndex]
 
   const getLyricTextClass = () => {
-    if (lyricsSize === 'Extra Large') return "text-3xl md:text-5xl"
-    if (lyricsSize === 'Large') return "text-2xl md:text-3xl"
-    return "text-xl md:text-2xl"
+    if (lyricsSize === 'Extra Large') return "text-2xl md:text-4xl"
+    if (lyricsSize === 'Large') return "text-xl md:text-3xl"
+    return "text-lg md:text-2xl"
   }
 
   // Optimize Performance / Avoid Chromium Aw Snap Browser Crash
@@ -490,7 +490,7 @@ export function AudioPlayer() {
             const data = await res.json();
             const similar = (data.results ||[]).filter((s: Song) => !queue.find(q => q.videoId === s.videoId));
             if (similar.length > 0) {
-              setQueue(prev => [...prev, similar[0]]);
+              setQueue(prev =>[...prev, similar[0]]);
               setCurrentIndex(queue.length);
             } else setIsPlaying(false);
           } catch {
@@ -604,7 +604,7 @@ export function AudioPlayer() {
       ytPlayerRef.current.loadVideoById(currentSong.videoId);
       ytPlayerRef.current.playVideo();
     }
-  }, [currentSong?.videoId]);
+  },[currentSong?.videoId]);
   
   // Safely intercept and stop the video when the queue is entirely destroyed
   useEffect(() => {
@@ -615,7 +615,7 @@ export function AudioPlayer() {
       setIsPlaying(false);
       setCurrentTime(0);
     }
-  }, [currentSong]);
+  },[currentSong]);
 
   useEffect(() => {
     if (ytPlayerRef.current && ytPlayerRef.current.setVolume) ytPlayerRef.current.setVolume(volume);
@@ -1318,7 +1318,7 @@ export function AudioPlayer() {
                   <div className="flex w-full items-center justify-between gap-3 px-2">
                     <div className="flex flex-1 items-center gap-3 rounded-2xl bg-muted/60 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:bg-muted/80">
                       <Button variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 flex-shrink-0 rounded-full p-0 transition-transform duration-300 hover:scale-110 active:scale-90 flex items-center justify-center text-foreground outline-none focus:outline-none"><VolumeIcon className="h-5 w-5 text-current" /></Button>
-                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground[&_[data-slot=thumb]]:h-4[&_[data-slot=thumb]]:w-4 [&_[data-slot=track]]:h-1.5[&_[data-slot=track]]:bg-foreground/10" />
+                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4[&_[data-slot=thumb]]:w-4 [&_[data-slot=track]]:h-1.5[&_[data-slot=track]]:bg-foreground/10" />
                       <span className="w-8 flex-shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{isMuted ? 0 : volume}%</span>
                     </div>
                   </div>
@@ -1373,9 +1373,9 @@ export function AudioPlayer() {
               </div>
             ) : activeTab === 'lyrics' ? (
               <div className="h-full flex flex-col relative w-full overflow-hidden transform-gpu" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
-                <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto overscroll-contain no-scrollbar scroll-smooth lyrics-scroll-container pb-32">
+                <div ref={lyricsContainerRef} className="flex-1 overflow-y-auto overscroll-contain no-scrollbar scroll-smooth lyrics-scroll-container pb-[50vh]">
                   {lyrics?.syncedLyrics ? (
-                    <div className="space-y-5 p-6 mt-4">
+                    <div className="space-y-4 p-6 mt-4">
                       {lyrics.syncedLyrics.map((line, index) => (
                         <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-2xl px-4 py-3 font-bold leading-relaxed text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
                           {line.text}
@@ -1592,8 +1592,8 @@ export function AudioPlayer() {
         </div>
 
         <div className={cn(
-          "flex-1 min-h-0 relative px-6 pb-6 flex flex-col z-10",
-          mobilePlayerTab === 'player' ? "overflow-y-auto" : "overflow-hidden"
+          "flex-1 min-h-0 relative flex flex-col z-10",
+          mobilePlayerTab === 'player' ? "overflow-y-auto px-6 pb-6" : "overflow-hidden px-4 pb-0"
         )}>
           {mobilePlayerTab === 'player' && currentSong && (
             <div className="flex flex-col items-center min-h-full py-4 animate-in fade-in zoom-in-95 duration-500 relative">
@@ -1657,18 +1657,18 @@ export function AudioPlayer() {
           )}
 
           {mobilePlayerTab === 'lyrics' && (
-             <div className="h-full flex flex-col relative w-full overflow-hidden transform-gpu" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 15%, black 85%, transparent 100%)' }}>
-                <div ref={lyricsContainerRefMobile} className="flex-1 overflow-y-auto overscroll-contain no-scrollbar scroll-smooth lyrics-scroll-container pb-32">
+             <div className="h-full flex flex-col relative w-full overflow-hidden transform-gpu" style={{ maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
+                <div ref={lyricsContainerRefMobile} className="flex-1 overflow-y-auto overscroll-contain no-scrollbar scroll-smooth lyrics-scroll-container pb-[50vh]">
                   {lyrics?.syncedLyrics ? (
-                    <div className="space-y-6 py-10 mt-4">
+                    <div className="space-y-4 py-8 mt-2">
                       {lyrics.syncedLyrics.map((line, index) => (
-                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
+                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-2xl px-4 py-3 font-extrabold leading-tight text-center", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-left" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-left" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-left")}>
                           {line.text}
                         </p>
                       ))}
                     </div>
                   ) : lyrics?.plainLyrics ? (
-                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-semibold text-xl text-center animate-in fade-in duration-500 py-10 px-2">{lyrics.plainLyrics}</p>
+                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-semibold text-lg text-center animate-in fade-in duration-500 py-10 px-2">{lyrics.plainLyrics}</p>
                   ) : currentSong ? (
                     <div className="flex flex-col items-center justify-center h-full"><Mic2 className="h-16 w-16 text-muted-foreground/40 mb-6" /><p className="font-extrabold text-2xl mb-2 text-foreground">Couldn't find timed lyrics</p><p className="text-sm font-medium text-muted-foreground px-6 mt-2 text-center">Try changing the lyrics provider in Settings.</p></div>
                   ) : (
