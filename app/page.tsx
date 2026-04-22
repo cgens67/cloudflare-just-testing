@@ -1,3 +1,5 @@
+"use client"
+
 import dynamic from "next/dynamic"
 
 // This forces Next.js to skip Server-Side Rendering (SSR) for the player.
