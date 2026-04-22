@@ -1,39 +1,34 @@
 import { NextResponse } from 'next/server'
 
 export const runtime = 'edge'
-export const revalidate = 3600
 
 export async function GET() {
   try {
-    const res = await fetch('https://pipedapi.kavin.rocks/trending?region=US', {
-      cf: { cacheEverything: true, cacheTtl: 3600 } 
-    })
-    
-    if (!res.ok) throw new Error('API Error')
-    
+    const res = await fetch('https://pipedapi.kavin.rocks/trending?region=US')
+    if (!res.ok) throw new Error()
     const data = await res.json()
     
-    const trendingVideos = data.slice(0, 30).map((video: any) => ({
-      videoId: video.url.split('?v=')[1],
-      title: video.title,
-      artist: video.uploaderName,
-      album: video.views.toLocaleString() + ' views',
-      duration: video.duration,
-      thumbnail: video.thumbnail
+    const trending = data.map((v: any) => ({
+      videoId: v.url.split('?v=')[1],
+      title: v.title,
+      artist: v.uploaderName,
+      album: `${v.viewCount?.toLocaleString() || 0} views`,
+      duration: v.duration,
+      thumbnail: v.thumbnail
     }))
 
     return NextResponse.json({ 
-      creatorsPicks: trendingVideos.slice(0, 8), 
-      artists: trendingVideos.slice(8, 16).map((v: any) => ({
-         artistId: v.uploaderUrl?.split('/channel/')[1] || '',
-         name: v.artist,
+      creatorsPicks: trending.slice(0, 8), 
+      artists: trending.slice(8, 16).map((v: any) => ({
+         artistId: v.uploaderUrl?.split('/channel/')[1] || v.uploaderUrl?.split('/c/')[1] || '',
+         name: v.artist || v.uploaderName,
          subscribers: 'Trending',
-         thumbnail: v.uploaderAvatar || v.thumbnail
+         thumbnail: v.thumbnail
       })), 
-      songs: trendingVideos.slice(16, 25), 
-      albums:[] 
+      songs: trending.slice(16, 28), 
+      albums: [] 
     })
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch explore data' }, { status: 500 })
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
