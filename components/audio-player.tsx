@@ -25,8 +25,8 @@ import {
   X, ListMusic, Mic2, MoreVertical, Info, Heart, ChevronDown,
   ChevronUp, ExternalLink, History, Library, UserCircle2, LogOut,
   Maximize, Minimize, Settings, TrendingUp, ListPlus, Disc3, MicVocal,
-  ArrowLeft, Palette, LayoutTemplate, CornerUpRight, AudioLines, Type, Star, 
-  ChevronLeft, ChevronRight, Speaker, ListFilter
+  ArrowLeft, Palette, LayoutTemplate, CornerUpRight, Type, Star, 
+  ChevronLeft, ChevronRight, ListFilter, AlignLeft, ArrowDownUp, EyeOff, Trash2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -86,14 +86,11 @@ export function AudioPlayer() {
   const[duration, setDuration] = useState(0)
   const[volume, setVolume] = useState(80)
   const[isMuted, setIsMuted] = useState(false)
-  const[shuffle, setShuffle] = useState(false)
+  const [shuffle, setShuffle] = useState(false)
   const[repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const[isLoading, setIsLoading] = useState(false)
   const[loadError, setLoadError] = useState<string | null>(null)
   
-  const[playbackRate, setPlaybackRate] = useState(1)
-  const[preservesPitch, setPreservesPitch] = useState(false)
-
   const [lyrics, setLyrics] = useState<LyricsData | null>(null)
   const[currentLyricIndex, setCurrentLyricIndex] = useState(-1)
 
@@ -115,7 +112,6 @@ export function AudioPlayer() {
   const[showCreditsDialog, setShowCreditsDialog] = useState(false)
   const[showAccountSettings, setShowAccountSettings] = useState(false) 
   const[showPlayerSettings, setShowPlayerSettings] = useState(false) 
-  const[showEffectsDialog, setShowEffectsDialog] = useState(false)
   const[showPlaylistDialog, setShowPlaylistDialog] = useState(false)
   const[newPlaylistName, setNewPlaylistName] = useState("")
   
@@ -125,16 +121,20 @@ export function AudioPlayer() {
   const[dominantColor, setDominantColor] = useState<string | null>(null)
   const[lyricsProvider, setLyricsProvider] = useState<'lrclib' | 'kugou'>('lrclib')
   const[lyricsSize, setLyricsSize] = useState<'Normal' | 'Large' | 'Extra Large'>('Normal')
-  const[audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
   const[autoPlaySimilar, setAutoPlaySimilar] = useState(false)
-  const[audioUrl, setAudioUrl] = useState<string | null>(null)
+  
+  // New Expanded Settings State
+  const[autoScrollLyrics, setAutoScrollLyrics] = useState(true)
+  const[lyricsAlignment, setLyricsAlignment] = useState<'Left' | 'Center' | 'Right'>('Center')
+  const[lyricsGlass, setLyricsGlass] = useState(false)
+  const[hideCreatorsPicks, setHideCreatorsPicks] = useState(false)
   
   const[showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
   const [email, setEmail] = useState("")
   const[password, setPassword] = useState("")
   const [isSignUp, setIsSignUp] = useState(false)
-  const [authError, setAuthError] = useState("")
+  const[authError, setAuthError] = useState("")
   const[displayNameInput, setDisplayNameInput] = useState("")
   
   const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
@@ -158,6 +158,18 @@ export function AudioPlayer() {
     if (lyricsSize === 'Extra Large') return "text-2xl md:text-4xl"
     if (lyricsSize === 'Large') return "text-xl md:text-3xl"
     return "text-lg md:text-2xl"
+  }
+  
+  const getLyricAlignWrapperClass = () => {
+    if (lyricsAlignment === 'Left') return "items-start px-4 md:px-8"
+    if (lyricsAlignment === 'Right') return "items-end px-4 md:px-8"
+    return "items-center px-2"
+  }
+
+  const getLyricOriginClass = () => {
+    if (lyricsAlignment === 'Left') return "text-left origin-left"
+    if (lyricsAlignment === 'Right') return "text-right origin-right"
+    return "text-center origin-center"
   }
 
   // Safely sample images while ensuring dead references are flushed
@@ -200,16 +212,6 @@ export function AudioPlayer() {
     }
   },[currentSong?.thumbnail, playerBgStyle])
 
-  const applyAudioEffects = useCallback(() => {
-    if (ytPlayerRef.current?.setPlaybackRate) {
-      try { ytPlayerRef.current.setPlaybackRate(playbackRate) } catch(e){}
-    }
-  },[playbackRate])
-
-  useEffect(() => {
-    applyAudioEffects()
-  },[playbackRate, applyAudioEffects])
-
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
       document.documentElement.requestFullscreen().then(() => setIsFullscreen(true)).catch(err => console.error(err))
@@ -230,10 +232,16 @@ export function AudioPlayer() {
       if (history) setSearchHistory(JSON.parse(history))
       const savedProvider = localStorage.getItem('ganvo_lyrics_provider')
       if (savedProvider) setLyricsProvider(savedProvider as 'lrclib' | 'kugou')
-      const savedQuality = localStorage.getItem('ganvo_audio_quality')
-      if (savedQuality) setAudioQuality(savedQuality as 'High' | 'Standard' | 'Low')
       const savedAutoPlay = localStorage.getItem('ganvo_autoplay_similar')
       if (savedAutoPlay !== null) setAutoPlaySimilar(savedAutoPlay === 'true')
+      const savedAutoScroll = localStorage.getItem('ganvo_auto_scroll_lyrics')
+      if (savedAutoScroll !== null) setAutoScrollLyrics(savedAutoScroll === 'true')
+      const savedAlignment = localStorage.getItem('ganvo_lyrics_alignment')
+      if (savedAlignment) setLyricsAlignment(savedAlignment as 'Left' | 'Center' | 'Right')
+      const savedGlass = localStorage.getItem('ganvo_lyrics_glass')
+      if (savedGlass !== null) setLyricsGlass(savedGlass === 'true')
+      const savedHidePicks = localStorage.getItem('ganvo_hide_picks')
+      if (savedHidePicks !== null) setHideCreatorsPicks(savedHidePicks === 'true')
     } catch (e) {}
 
     setIsExploreLoading(true)
@@ -654,7 +662,7 @@ export function AudioPlayer() {
 
     if (index !== currentLyricIndex) {
       setCurrentLyricIndex(index)
-      if (index >= 0) {
+      if (index >= 0 && autoScrollLyrics) {
         setTimeout(() => {
           const activeLines = document.querySelectorAll('.lyric-active-line');
           activeLines.forEach((line) => {
@@ -667,7 +675,7 @@ export function AudioPlayer() {
         }, 50)
       }
     }
-  },[currentTime, lyrics, currentLyricIndex])
+  },[currentTime, lyrics, currentLyricIndex, autoScrollLyrics])
 
   const playNext = useCallback(() => {
     if (queue.length === 0) return
@@ -925,9 +933,6 @@ export function AudioPlayer() {
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowPlayerSettings(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
                 <Settings className="h-4 w-4 text-muted-foreground text-current" /> Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowEffectsDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
-                <AudioLines className="h-4 w-4 text-muted-foreground text-current" /> Audio Effects
-              </DropdownMenuItem>
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowAboutDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground">
                 <Info className="h-4 w-4 text-muted-foreground text-current" /> About Ganvo
               </DropdownMenuItem>
@@ -958,7 +963,7 @@ export function AudioPlayer() {
                  <div className="flex flex-col items-center justify-center py-32 text-center"><TrendingUp className="h-16 w-16 text-muted-foreground/40 mb-6" /><p className="font-extrabold text-2xl mb-2 text-foreground">Explore Unavailable</p><p className="text-sm font-medium text-muted-foreground max-w-[300px]">Servers are temporarily busy. Use the search bar to find music.</p></div>
                ) : (
                  <div className="space-y-12">
-                   {exploreData?.creatorsPicks?.length > 0 && (
+                   {!hideCreatorsPicks && exploreData?.creatorsPicks?.length > 0 && (
                      <ScrollableRow title="Creator's Top Picks" icon={Star}>
                         {exploreData.creatorsPicks.map((song, idx) => (
                           <div key={idx} onClick={() => addToQueueAndPlay(song)} className="group flex flex-col gap-3 w-40 sm:w-48 shrink-0 cursor-pointer snap-start transition-all">
@@ -1318,7 +1323,7 @@ export function AudioPlayer() {
                   <div className="flex w-full items-center justify-between gap-3 px-2">
                     <div className="flex flex-1 items-center gap-3 rounded-2xl bg-muted/60 backdrop-blur-sm px-4 py-3 transition-all duration-300 hover:bg-muted/80">
                       <Button variant="ghost" size="icon" onClick={toggleMute} className="h-8 w-8 flex-shrink-0 rounded-full p-0 transition-transform duration-300 hover:scale-110 active:scale-90 flex items-center justify-center text-foreground outline-none focus:outline-none"><VolumeIcon className="h-5 w-5 text-current" /></Button>
-                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing[&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4[&_[data-slot=thumb]]:w-4 [&_[data-slot=track]]:h-1.5[&_[data-slot=track]]:bg-foreground/10" />
+                      <Slider value={[isMuted ? 0 : volume]} max={100} step={1} onValueChange={handleVolumeChange} className="flex-1 cursor-grab active:cursor-grabbing [&_[data-slot=range]]:bg-foreground [&_[data-slot=thumb]]:h-4 [&_[data-slot=thumb]]:w-4 [&_[data-slot=track]]:h-1.5 [&_[data-slot=track]]:bg-foreground/10" />
                       <span className="w-8 flex-shrink-0 text-right text-xs font-bold tabular-nums text-muted-foreground">{isMuted ? 0 : volume}%</span>
                     </div>
                   </div>
@@ -1375,15 +1380,15 @@ export function AudioPlayer() {
               <div className="h-full w-full relative overflow-hidden" style={{ isolation: 'isolate', maskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)', WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, black 10%, black 90%, transparent 100%)' }}>
                 <div ref={lyricsContainerRef} className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar scroll-smooth lyrics-scroll-container pb-[50vh]">
                   {lyrics?.syncedLyrics ? (
-                    <div className="flex flex-col items-center gap-5 px-6 py-10 mt-4">
+                    <div className={cn("flex flex-col gap-5 py-10 mt-4", getLyricAlignWrapperClass(), lyricsGlass && "bg-black/10 dark:bg-black/40 backdrop-blur-xl rounded-3xl mx-4 my-4 p-6 shadow-xl border border-white/5")}>
                       {lyrics.syncedLyrics.map((line, index) => (
-                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-2xl px-4 py-3 font-bold leading-relaxed text-center max-w-full", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-center" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-center" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-center")}>
+                        <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-2xl px-4 py-3 font-bold leading-relaxed max-w-full", getLyricTextClass(), getLyricOriginClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95")}>
                           {line.text}
                         </p>
                       ))}
                     </div>
                   ) : lyrics?.plainLyrics ? (
-                    <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-medium text-base text-center animate-in fade-in duration-500 p-6">{lyrics.plainLyrics}</p>
+                    <p className={cn("whitespace-pre-wrap leading-relaxed text-muted-foreground font-medium text-base animate-in fade-in duration-500 p-6", getLyricAlignWrapperClass(), lyricsGlass && "bg-black/10 dark:bg-black/40 backdrop-blur-xl rounded-3xl mx-4 my-4 p-6 shadow-xl border border-white/5")}>{lyrics.plainLyrics}</p>
                   ) : currentSong ? (
                     <div className="flex flex-col items-center justify-center py-24 text-center h-full"><Mic2 className="h-10 w-10 text-muted-foreground/40 mb-6" /><p className="font-extrabold text-xl mb-2 text-foreground">Couldn't find timed lyrics</p><p className="text-sm font-medium text-muted-foreground px-4 mt-2">Try changing the lyrics provider in Settings.</p></div>
                   ) : (
@@ -1584,9 +1589,6 @@ export function AudioPlayer() {
               <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowPlayerSettings(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground outline-none focus:outline-none">
                 <Settings className="h-4 w-4 text-muted-foreground text-current" /> Settings
               </DropdownMenuItem>
-              <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setTimeout(() => setShowEffectsDialog(true), 100); }} className="cursor-pointer gap-3 rounded-xl py-2.5 font-medium transition-colors active:scale-[0.98] text-foreground outline-none focus:outline-none">
-                <AudioLines className="h-4 w-4 text-muted-foreground text-current" /> Audio Effects
-              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
@@ -1674,15 +1676,15 @@ export function AudioPlayer() {
           >
              <div ref={lyricsContainerRefMobile} className="h-full w-full overflow-y-auto overscroll-contain no-scrollbar scroll-smooth lyrics-scroll-container pb-[50vh]">
                 {lyrics?.syncedLyrics ? (
-                  <div className="flex flex-col items-center gap-6 py-8 mt-2 px-2">
+                  <div className={cn("flex flex-col gap-6 py-10 mt-2", getLyricAlignWrapperClass(), lyricsGlass && "bg-black/10 dark:bg-black/40 backdrop-blur-xl rounded-3xl mx-4 my-4 p-6 shadow-xl border border-white/5")}>
                     {lyrics.syncedLyrics.map((line, index) => (
-                      <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight text-center max-w-full", getLyricTextClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm origin-center" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95 origin-center" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95 origin-center")}>
+                      <p key={index} onClick={() => { if (ytPlayerRef.current) ytPlayerRef.current.seekTo(line.time, true) }} className={cn("lyric-line transition-all duration-500 ease-out cursor-pointer rounded-3xl px-6 py-4 font-extrabold leading-tight max-w-full", getLyricTextClass(), getLyricOriginClass(), index === currentLyricIndex ? "lyric-active-line scale-[1.05] bg-primary/10 text-primary shadow-sm" : index < currentLyricIndex ? "text-muted-foreground/30 scale-95" : "text-muted-foreground/70 hover:bg-muted hover:text-foreground scale-95")}>
                         {line.text}
                       </p>
                     ))}
                   </div>
                 ) : lyrics?.plainLyrics ? (
-                  <p className="whitespace-pre-wrap leading-relaxed text-muted-foreground font-semibold text-lg text-center animate-in fade-in duration-500 py-10 px-6">{lyrics.plainLyrics}</p>
+                  <p className={cn("whitespace-pre-wrap leading-relaxed text-muted-foreground font-semibold text-lg animate-in fade-in duration-500 py-10 px-6", getLyricAlignWrapperClass(), lyricsGlass && "bg-black/10 dark:bg-black/40 backdrop-blur-xl rounded-3xl mx-4 my-4 p-6 shadow-xl border border-white/5")}>{lyrics.plainLyrics}</p>
                 ) : currentSong ? (
                   <div className="flex flex-col items-center justify-center h-full"><Mic2 className="h-16 w-16 text-muted-foreground/40 mb-6" /><p className="font-extrabold text-2xl mb-2 text-foreground">Couldn't find timed lyrics</p><p className="text-sm font-medium text-muted-foreground px-6 mt-2 text-center">Try changing the lyrics provider in Settings.</p></div>
                 ) : (
@@ -1727,44 +1729,6 @@ export function AudioPlayer() {
 
       {/* --- ALL DIALOGS (SETTINGS, EFFECTS, AUTH, PLAYLISTS, CREDITS) --- */}
       
-      <Dialog open={showEffectsDialog} onOpenChange={setShowEffectsDialog}>
-        <DialogContent className="rounded-[2rem] sm:max-w-md p-8 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-out outline-none bg-background !z-[400]">
-          <DialogHeader>
-            <DialogTitle className="text-2xl font-extrabold flex items-center gap-3 text-foreground"><AudioLines className="h-6 w-6 text-primary"/> Audio Effects</DialogTitle>
-            <DialogDescription className="font-medium text-muted-foreground mt-2">Adjust playback speed and pitch.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-8 mt-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-bold text-foreground">Playback Speed</label>
-                <span className="text-xs font-bold bg-muted px-2.5 py-1 rounded-full text-foreground">{playbackRate.toFixed(2)}x</span>
-              </div>
-              <Slider 
-                value={[playbackRate]} 
-                min={0.5} max={2.0} step={0.05} 
-                onValueChange={(val) => setPlaybackRate(val[0])} 
-                className="[&_[data-slot=range]]:bg-blue-500[&_[data-slot=thumb]]:h-5 [&_[data-slot=thumb]]:w-5" 
-              />
-              <div className="flex justify-between text-xs font-semibold text-muted-foreground">
-                <span>0.5x</span>
-                <span>Normal</span>
-                <span>2.0x</span>
-              </div>
-            </div>
-            
-            <div className="flex items-center justify-between p-4 bg-muted/30 rounded-2xl">
-               <div className="flex flex-col">
-                 <span className="font-bold text-foreground">Preserve Pitch</span>
-                 <span className="text-xs font-medium text-muted-foreground">Disable to create Nightcore edits seamlessly!</span>
-               </div>
-               <Switch checked={preservesPitch} onCheckedChange={setPreservesPitch} />
-            </div>
-
-            <Button onClick={() => {setPlaybackRate(1); setPreservesPitch(true)}} variant="secondary" className="w-full h-12 rounded-xl font-bold text-foreground bg-secondary hover:bg-secondary/80 outline-none focus:outline-none">Reset to Default</Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
       <Dialog open={showPlayerSettings} onOpenChange={setShowPlayerSettings}>
         <DialogContent className="rounded-[2rem] sm:max-w-md p-0 border-0 shadow-2xl animate-in zoom-in-95 duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] outline-none overflow-hidden bg-background !z-[400]">
           <div className="flex items-center gap-4 p-5 border-b bg-card/50 backdrop-blur-sm">
@@ -1772,14 +1736,16 @@ export function AudioPlayer() {
             <h2 className="text-xl font-bold text-foreground">Settings</h2>
           </div>
           <div className="p-2 overflow-y-auto max-h-[70vh] no-scrollbar pb-10">
+             
+             {/* Appearance Settings */}
              <div className="px-4 py-2 space-y-1">
-               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Theme</h3>
+               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Appearance</h3>
                
                <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
                  <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><Palette className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
-                     <span className="font-semibold text-base text-foreground">Enable dynamic theme</span>
+                     <span className="font-semibold text-base text-foreground">Dynamic theme</span>
                      <span className="text-xs font-normal text-muted-foreground">Extracts colors from the active album cover.</span>
                    </div>
                  </div>
@@ -1790,23 +1756,35 @@ export function AudioPlayer() {
                  <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><Moon className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
-                     <span className="font-bold text-base text-foreground">Dark theme</span>
-                     <span className="text-sm font-normal text-muted-foreground">{isDark ? 'On' : 'Off'}</span>
+                     <span className="font-bold text-base text-foreground">Dark mode</span>
+                     <span className="text-xs font-normal text-muted-foreground">Toggle application theme.</span>
                    </div>
                  </div>
                  <Switch checked={isDark} onCheckedChange={setIsDark} className="shrink-0 pointer-events-none" />
                </div>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><EyeOff className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-bold text-base text-foreground">Hide Creator's Picks</span>
+                     <span className="text-xs font-normal text-muted-foreground">Remove top picks from the Explore tab.</span>
+                   </div>
+                 </div>
+                 <Switch checked={hideCreatorsPicks} onCheckedChange={(val) => { setHideCreatorsPicks(val); localStorage.setItem('ganvo_hide_picks', val.toString()) }} className="shrink-0" />
+               </div>
              </div>
              
+             {/* Player Settings */}
              <div className="px-4 py-4 space-y-1">
-               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Player</h3>
+               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Player View</h3>
                
                <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
                  <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><LayoutTemplate className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
-                     <span className="font-bold text-base text-foreground">Player background style</span>
-                     <span className="text-xs font-normal text-muted-foreground">How the dynamic background renders.</span>
+                     <span className="font-bold text-base text-foreground">Background style</span>
+                     <span className="text-xs font-normal text-muted-foreground">How the background renders.</span>
                    </div>
                  </div>
                  <Select disabled={!dynamicTheme} value={playerBgStyle} onValueChange={(v: any) => setPlayerBgStyle(v)}>
@@ -1825,7 +1803,7 @@ export function AudioPlayer() {
                  <div className="flex items-center justify-between mb-4">
                    <div className="flex items-center gap-4">
                      <div className="p-2 bg-muted/80 rounded-full text-foreground"><CornerUpRight className="w-5 h-5 text-current"/></div>
-                     <span className="font-bold text-base text-foreground">Customize thumbnail radius</span>
+                     <span className="font-bold text-base text-foreground">Thumbnail corner radius</span>
                    </div>
                    <span className="text-xs font-bold bg-muted px-2.5 py-1 rounded-full text-foreground">{thumbnailRadius}px</span>
                  </div>
@@ -1839,15 +1817,16 @@ export function AudioPlayer() {
                
              </div>
              
+             {/* Audio Settings */}
              <div className="px-4 py-4 space-y-1">
-               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Audio</h3>
+               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Audio & Playback</h3>
 
                <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
                  <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><ListFilter className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
                      <span className="font-semibold text-base text-foreground">Auto-play similar songs</span>
-                     <span className="text-xs font-normal text-muted-foreground">Keep the music going.</span>
+                     <span className="text-xs font-normal text-muted-foreground">Keep the music going when queue ends.</span>
                    </div>
                  </div>
                  <Switch checked={autoPlaySimilar} onCheckedChange={(val) => { setAutoPlaySimilar(val); localStorage.setItem('ganvo_autoplay_similar', val.toString()) }} className="shrink-0" />
@@ -1855,14 +1834,57 @@ export function AudioPlayer() {
 
              </div>
              
+             {/* Lyrics Settings */}
              <div className="px-4 py-4 space-y-1">
                <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Lyrics</h3>
 
                <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
                  <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><ArrowDownUp className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-bold text-base text-foreground">Auto-scroll lyrics</span>
+                     <span className="text-xs font-normal text-muted-foreground">Keep active lyric in the center.</span>
+                   </div>
+                 </div>
+                 <Switch checked={autoScrollLyrics} onCheckedChange={(val) => { setAutoScrollLyrics(val); localStorage.setItem('ganvo_auto_scroll_lyrics', val.toString()) }} className="shrink-0" />
+               </div>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><AlignLeft className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-bold text-base text-foreground">Text alignment</span>
+                     <span className="text-xs font-normal text-muted-foreground">Align lyrics text to the edges.</span>
+                   </div>
+                 </div>
+                 <Select value={lyricsAlignment} onValueChange={(v: any) => { setLyricsAlignment(v); localStorage.setItem('ganvo_lyrics_alignment', v)}}>
+                    <SelectTrigger className="w-[110px] rounded-xl font-bold bg-muted border-none text-foreground text-xs h-9 shrink-0 outline-none focus:ring-0">
+                      <SelectValue placeholder="Align" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl z-[500]">
+                      <SelectItem value="Left" className="font-bold py-2 text-xs">Left</SelectItem>
+                      <SelectItem value="Center" className="font-bold py-2 text-xs">Center</SelectItem>
+                      <SelectItem value="Right" className="font-bold py-2 text-xs">Right</SelectItem>
+                    </SelectContent>
+                  </Select>
+               </div>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-muted/80 rounded-full text-foreground"><LayoutTemplate className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-bold text-base text-foreground">Glass backdrop</span>
+                     <span className="text-xs font-normal text-muted-foreground">Darkened glass effect behind lyrics.</span>
+                   </div>
+                 </div>
+                 <Switch checked={lyricsGlass} onCheckedChange={(val) => { setLyricsGlass(val); localStorage.setItem('ganvo_lyrics_glass', val.toString()) }} className="shrink-0" />
+               </div>
+
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-muted/50 transition-colors">
+                 <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><MicVocal className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
-                     <span className="font-bold text-base text-foreground">Preferred provider</span>
+                     <span className="font-bold text-base text-foreground">Data provider</span>
                      <span className="text-xs font-normal text-muted-foreground">Source used for synced lyrics.</span>
                    </div>
                  </div>
@@ -1881,7 +1903,7 @@ export function AudioPlayer() {
                  <div className="flex items-center gap-4">
                    <div className="p-2 bg-muted/80 rounded-full text-foreground"><Type className="w-5 h-5 text-current"/></div>
                    <div className="flex flex-col">
-                     <span className="font-bold text-base text-foreground">Lyrics text size</span>
+                     <span className="font-bold text-base text-foreground">Text size</span>
                      <span className="text-xs font-normal text-muted-foreground">Adjust synced lyrics font size.</span>
                    </div>
                  </div>
@@ -1896,8 +1918,22 @@ export function AudioPlayer() {
                     </SelectContent>
                   </Select>
                </div>
-               
              </div>
+
+             {/* Data Settings */}
+             <div className="px-4 py-4 space-y-1">
+               <h3 className="text-[13px] font-bold text-primary mb-4 ml-2">Data & Privacy</h3>
+               <div className="flex items-center justify-between p-3 bg-transparent rounded-2xl cursor-pointer hover:bg-destructive/10 transition-colors text-destructive" onClick={() => { if(window.confirm("Clear all app preferences and search history? Your cloud playlists will not be deleted.")) { localStorage.clear(); window.location.reload(); } }}>
+                 <div className="flex items-center gap-4">
+                   <div className="p-2 bg-destructive/10 rounded-full text-current"><Trash2 className="w-5 h-5 text-current"/></div>
+                   <div className="flex flex-col">
+                     <span className="font-bold text-base text-current">Clear all local data</span>
+                     <span className="text-xs font-normal opacity-80">Resets settings and search history.</span>
+                   </div>
+                 </div>
+               </div>
+             </div>
+
           </div>
         </DialogContent>
       </Dialog>
