@@ -2,25 +2,18 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'edge'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ artistId: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ artistId: string }> }) {
   const { artistId } = await params
-  if (!artistId) return NextResponse.json({ error: 'ID required' }, { status: 400 })
-
   try {
-    const res = await fetch(`https://pipedapi.kavin.rocks/channel/${artistId}`, {
-      cf: { cacheEverything: true, cacheTtl: 3600 }
-    })
-    if (!res.ok) throw new Error('API Error')
+    const res = await fetch(`https://pipedapi.kavin.rocks/channel/${artistId}`)
+    if (!res.ok) throw new Error()
     const data = await res.json()
 
-    const topSongs = (data.relatedStreams ||[]).slice(0, 15).map((v: any) => ({
+    const topSongs = data.relatedStreams.map((v: any) => ({
       videoId: v.url.split('?v=')[1],
       title: v.title,
       artist: data.name,
-      album: v.views.toLocaleString() + ' views',
+      album: `${v.viewCount?.toLocaleString() || 0} views`,
       duration: v.duration,
       thumbnail: v.thumbnail
     }))
@@ -28,13 +21,13 @@ export async function GET(
     return NextResponse.json({ 
       name: data.name,
       description: data.description,
-      subscribers: data.subscriberCount.toLocaleString() + ' subscribers',
-      thumbnails:[{ url: data.avatarUrl }],
+      subscribers: `${data.subscriberCount?.toLocaleString() || 0} subscribers`,
+      thumbnails: [{ url: data.avatarUrl }],
       topSongs,
       albums: [],
-      singles:[]
+      singles: []
     })
-  } catch (error) {
-    return NextResponse.json({ error: 'Failed to fetch channel' }, { status: 500 })
+  } catch (e) {
+    return NextResponse.json({ error: 'Failed' }, { status: 500 })
   }
 }
