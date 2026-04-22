@@ -8,4 +8,6 @@ export async function GET() {
     artist: '',
     year: '',
     thumbnails: [],
-    songs:
+    songs: []
+  })
+}
