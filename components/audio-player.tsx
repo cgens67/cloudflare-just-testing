@@ -77,11 +77,11 @@ export function AudioPlayer() {
   const[isDark, setIsDark] = useState(false)
   const[isFullscreen, setIsFullscreen] = useState(false)
   
-  const [searchQuery, setSearchQuery] = useState("")
+  const[searchQuery, setSearchQuery] = useState("")
   const [searchResults, setSearchResults] = useState<Song[]>([])
   const[searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
   const[isSearching, setIsSearching] = useState(false)
-  const [isSearchExpanded, setIsSearchExpanded] = useState(false)
+  const[isSearchExpanded, setIsSearchExpanded] = useState(false)
   const[searchHistory, setSearchHistory] = useState<string[]>([])
   const [searchFocused, setSearchFocused] = useState(false)
   
@@ -89,7 +89,7 @@ export function AudioPlayer() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isPlaying, setIsPlaying] = useState(false)
   const[currentTime, setCurrentTime] = useState(0)
-  const [duration, setDuration] = useState(0)
+  const[duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
   const[isMuted, setIsMuted] = useState(false)
   const [shuffle, setShuffle] = useState(false)
@@ -99,30 +99,30 @@ export function AudioPlayer() {
   const [playbackRate, setPlaybackRate] = useState(1)
 
   const [activeTab, setActiveTab] = useState<'player' | 'explore' | 'queue' | 'library' | 'artist' | 'album' | 'playlistView'>('explore')
-  const [isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
+  const[isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'queue'>('player')
 
   const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks:[], artists:[], songs: [], albums:[]})
   const[isExploreLoading, setIsExploreLoading] = useState(true)
   const[exploreError, setExploreError] = useState(false)
   
-  const [currentArtistData, setCurrentArtistData] = useState<any>(null)
+  const[currentArtistData, setCurrentArtistData] = useState<any>(null)
   const [isArtistLoading, setIsArtistLoading] = useState(false)
   const[currentAlbumData, setCurrentAlbumData] = useState<any>(null)
-  const [isAlbumLoading, setIsAlbumLoading] = useState(false)
+  const[isAlbumLoading, setIsAlbumLoading] = useState(false)
   const [currentPlaylistView, setCurrentPlaylistView] = useState<Playlist | null>(null)
 
   const[showAboutDialog, setShowAboutDialog] = useState(false)
   const [showCreditsDialog, setShowCreditsDialog] = useState(false)
-  const [showAccountSettings, setShowAccountSettings] = useState(false) 
+  const[showAccountSettings, setShowAccountSettings] = useState(false) 
   const[showPlayerSettings, setShowPlayerSettings] = useState(false) 
   const [showPlaylistDialog, setShowPlaylistDialog] = useState(false)
-  const [newPlaylistName, setNewPlaylistName] = useState("")
+  const[newPlaylistName, setNewPlaylistName] = useState("")
   
   const[dynamicTheme, setDynamicTheme] = useState(true)
   const [playerBgStyle, setPlayerBgStyle] = useState<'Theme' | 'Gradient' | 'Blur'>('Blur')
   const [thumbnailRadius, setThumbnailRadius] = useState(16)
-  const [dominantColor, setDominantColor] = useState<string | null>(null)
+  const[dominantColor, setDominantColor] = useState<string | null>(null)
   const[audioQuality, setAudioQuality] = useState<'High' | 'Standard' | 'Low'>('High')
   const[autoPlaySimilar, setAutoPlaySimilar] = useState(false)
   
@@ -183,7 +183,7 @@ export function AudioPlayer() {
     }
     img.src = currentSong.thumbnail;
     return () => { isActive = false; img.onload = null; }
-  }, [currentSong?.thumbnail, playerBgStyle])
+  },[currentSong?.thumbnail, playerBgStyle])
 
   const applyAudioEffects = useCallback(() => {
     if (ytPlayerRef.current?.setPlaybackRate) {
@@ -246,7 +246,7 @@ export function AudioPlayer() {
 
   useEffect(() => {
     if (!auth || !db) return
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser: any) => {
       setUser(currentUser)
       if (currentUser) {
         setDisplayNameInput(currentUser.displayName || "")
@@ -257,7 +257,7 @@ export function AudioPlayer() {
           const localSaved = JSON.parse(localStorage.getItem('ganvo_saved_songs') || '[]')
           const localPlaylists = JSON.parse(localStorage.getItem('ganvo_playlists') || '[]')
           
-          const combinedSaved = [...(data.savedSongs || []), ...localSaved].filter((v,i,a) => a.findIndex(t => (t.videoId === v.videoId)) === i)
+          const combinedSaved =[...(data.savedSongs || []), ...localSaved].filter((v,i,a) => a.findIndex(t => (t.videoId === v.videoId)) === i)
           const combinedPlaylists =[...(data.playlists || []), ...localPlaylists].filter((v,i,a) => a.findIndex(t => (t.id === v.id)) === i)
           
           setSavedSongs(combinedSaved)
@@ -340,7 +340,7 @@ export function AudioPlayer() {
     e.preventDefault()
     if (!newPlaylistName.trim()) return
     const newPlaylist: Playlist = { id: Date.now().toString(), name: newPlaylistName.trim(), songs:[] }
-    const updatedPlaylists = [...playlists, newPlaylist]
+    const updatedPlaylists =[...playlists, newPlaylist]
     setPlaylists(updatedPlaylists)
     syncToCloud(savedSongs, updatedPlaylists)
     setNewPlaylistName("")
@@ -372,18 +372,6 @@ export function AudioPlayer() {
     } catch (e) {} finally { setIsArtistLoading(false) }
   }
 
-  const loadAlbumView = async (albumId: string) => {
-    setIsAlbumLoading(true)
-    setActiveTab('album')
-    setCurrentAlbumData(null)
-    setIsMobilePlayerExpanded(false)
-    try {
-      const res = await fetch(`/api/music/album/${albumId}`)
-      const data = await res.json()
-      if (data && !data.error) setCurrentAlbumData(data)
-    } catch (e) {} finally { setIsAlbumLoading(false) }
-  }
-
   const loadPlaylistView = (playlist: Playlist) => {
     setCurrentPlaylistView(playlist)
     setActiveTab('playlistView')
@@ -392,7 +380,7 @@ export function AudioPlayer() {
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", isDark)
-  }, [isDark])
+  },[isDark])
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -541,7 +529,7 @@ export function AudioPlayer() {
           },
           onError: () => {
             setIsLoading(false); setIsPlaying(false);
-            setLoadError("Video unavailable in your region. Trying next...");
+            setLoadError("Video unavailable. Trying next...");
             setTimeout(() => playNext(), 3000);
           }
         }
@@ -590,7 +578,7 @@ export function AudioPlayer() {
       if (intervalRef.current) clearInterval(intervalRef.current);
     }
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
-  }, [isPlaying]);
+  },[isPlaying]);
 
   useEffect(() => {
     if (currentSong && ytPlayerRef.current && ytPlayerRef.current.loadVideoById) {
@@ -610,7 +598,7 @@ export function AudioPlayer() {
       setIsPlaying(false);
       setCurrentTime(0);
     }
-  }, [currentSong]);
+  },[currentSong]);
 
   useEffect(() => {
     if (ytPlayerRef.current && ytPlayerRef.current.setVolume) ytPlayerRef.current.setVolume(volume);
