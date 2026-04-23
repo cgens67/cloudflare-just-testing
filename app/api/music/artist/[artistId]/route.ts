@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export const runtime = 'edge'
 
-const PIPED_INSTANCES =[
+const PIPED_INSTANCES = [
   'https://pipedapi.tokhmi.xyz',
   'https://pipedapi.syncpundit.io',
   'https://piped-api.garudalinux.org',
@@ -14,7 +14,7 @@ async function fetchWithFallback(endpoint: string) {
   for (const instance of PIPED_INSTANCES) {
     try {
       const res = await fetch(`${instance}${endpoint}`, {
-        cf: { cacheEverything: true, cacheTtl: 3600 }
+        next: { revalidate: 3600 }
       })
       if (res.ok) return await res.json()
     } catch (e) {
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   try {
     const data = await fetchWithFallback(`/channel/${artistId}`)
 
-    const topSongs = data.relatedStreams.map((v: any) => ({
+    const topSongs = (data.relatedStreams || []).map((v: any) => ({
       videoId: v.url.split('?v=')[1],
       title: v.title,
       artist: data.name,
@@ -47,4 +47,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       thumbnails: [{ url: data.avatarUrl }],
       topSongs,
       albums: [],
-      singles:
+      singles: []
+    })
+  } catch (error) {
+    return NextResponse.json({ error: 'Failed to fetch channel' }, { status: 500 })
+  }
+}
