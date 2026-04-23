@@ -1,16 +1,7 @@
-"use client"
+export const runtime = 'edge'
 
-import { useEffect, useState } from "react"
-import { AudioPlayer } from "@/components/audio-player"
+import { ClientWrapper } from "@/components/client-wrapper"
 
 export default function Page() {
-  const [hasMounted, setHasMounted] = useState(false)
-
-  useEffect(() => {
-    setHasMounted(true)
-  },[])
-
-  if (!hasMounted) return <div className="h-screen w-screen bg-background" />
-
-  return <AudioPlayer />
+  return <ClientWrapper />
 }
