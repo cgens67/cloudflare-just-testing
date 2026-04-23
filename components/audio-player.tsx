@@ -46,10 +46,14 @@ let db: any = null;
 let googleProvider: any = null;
 
 if (typeof window !== "undefined") {
-  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
-  auth = getAuth(app);
-  db = getFirestore(app);
-  googleProvider = new GoogleAuthProvider();
+  try {
+    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+    auth = getAuth(app);
+    db = getFirestore(app);
+    googleProvider = new GoogleAuthProvider();
+  } catch (e) {
+    console.error("Firebase init safe fail:", e);
+  }
 }
 
 interface Song { videoId: string; title: string; artist: string; artistId?: string | null; album: string; duration: number; thumbnail: string; }
@@ -78,7 +82,7 @@ export function AudioPlayer() {
   const[isFullscreen, setIsFullscreen] = useState(false)
   
   const[searchQuery, setSearchQuery] = useState("")
-  const [searchResults, setSearchResults] = useState<Song[]>([])
+  const[searchResults, setSearchResults] = useState<Song[]>([])
   const[searchSort, setSearchSort] = useState<'relevance' | 'az' | 'za'>('relevance')
   const[isSearching, setIsSearching] = useState(false)
   const[isSearchExpanded, setIsSearchExpanded] = useState(false)
@@ -87,7 +91,7 @@ export function AudioPlayer() {
   
   const [queue, setQueue] = useState<Song[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
+  const[isPlaying, setIsPlaying] = useState(false)
   const[currentTime, setCurrentTime] = useState(0)
   const[duration, setDuration] = useState(0)
   const [volume, setVolume] = useState(80)
@@ -96,13 +100,13 @@ export function AudioPlayer() {
   const [repeatMode, setRepeatMode] = useState<"off" | "all" | "one">("off")
   const[isLoading, setIsLoading] = useState(false)
   const[loadError, setLoadError] = useState<string | null>(null)
-  const [playbackRate, setPlaybackRate] = useState(1)
+  const[playbackRate, setPlaybackRate] = useState(1)
 
   const [activeTab, setActiveTab] = useState<'player' | 'explore' | 'queue' | 'library' | 'artist' | 'album' | 'playlistView'>('explore')
   const[isMobilePlayerExpanded, setIsMobilePlayerExpanded] = useState(false)
   const[mobilePlayerTab, setMobilePlayerTab] = useState<'player' | 'queue'>('player')
 
-  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks:[], artists:[], songs: [], albums:[]})
+  const[exploreData, setExploreData] = useState<{creatorsPicks: Song[], artists: any[], songs: Song[], albums: any[]}>({creatorsPicks:[], artists:[], songs:[], albums:[]})
   const[isExploreLoading, setIsExploreLoading] = useState(true)
   const[exploreError, setExploreError] = useState(false)
   
@@ -127,20 +131,20 @@ export function AudioPlayer() {
   const[autoPlaySimilar, setAutoPlaySimilar] = useState(false)
   
   const [hideCreatorsPicks, setHideCreatorsPicks] = useState(false)
-  const [compactQueue, setCompactQueue] = useState(false)
+  const[compactQueue, setCompactQueue] = useState(false)
   const[autoSwitchToPlayer, setAutoSwitchToPlayer] = useState(true)
   const [saveSearchHistory, setSaveSearchHistory] = useState(true)
   const [reduceMotion, setReduceMotion] = useState(false)
   
   const[showAuthDialog, setShowAuthDialog] = useState(false)
   const [user, setUser] = useState<FirebaseUser | null>(null)
-  const [email, setEmail] = useState("")
+  const[email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isSignUp, setIsSignUp] = useState(false)
+  const[isSignUp, setIsSignUp] = useState(false)
   const[authError, setAuthError] = useState("")
   const [displayNameInput, setDisplayNameInput] = useState("")
   
-  const [likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
+  const[likedSongs, setLikedSongs] = useState<Set<string>>(new Set())
   const[savedSongs, setSavedSongs] = useState<Song[]>([])
   const [playlists, setPlaylists] = useState<Playlist[]>([])
 
@@ -641,7 +645,7 @@ export function AudioPlayer() {
   const toggleLike = async (song: Song) => {
     setLikedSongs((prev) => {
       const next = new Set(prev)
-      let newSaved = [...savedSongs]
+      let newSaved =[...savedSongs]
       if (next.has(song.videoId)) {
         next.delete(song.videoId)
         newSaved = newSaved.filter(s => s.videoId !== song.videoId)
@@ -1080,7 +1084,7 @@ export function AudioPlayer() {
           </div>
 
           <div className={cn(
-            "flex-1 min-h-0 overscroll-contain transition-all duration-500", ['queue', 'library'].includes(activeTab) ? "overflow-hidden flex flex-col" : "overflow-y-auto"
+            "flex-1 min-h-0 overscroll-contain transition-all duration-500",['queue', 'library'].includes(activeTab) ? "overflow-hidden flex flex-col" : "overflow-y-auto"
           )}>
             {activeTab === 'explore' || activeTab === 'artist' || activeTab === 'album' || activeTab === 'playlistView' || activeTab === 'player' ? (
               <div className="flex flex-col items-center justify-center h-full p-6 text-center">
